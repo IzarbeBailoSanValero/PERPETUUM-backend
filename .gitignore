@@ -1,0 +1,55 @@
+# Archivos binarios y de compilación
+bin/
+obj/
+[Bb]uild/
+[Ll]ogs/
+
+# Archivos de usuario y configuración local
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
+
+# Archivos de Visual Studio
+.vs/
+.vscode/
+
+# Archivos de paquetes NuGet
+*.nupkg
+*.snupkg
+packages/
+*.nuget.props
+*.nuget.targets
+
+# Archivos de dependencias
+project.lock.json
+project.fragment.lock.json
+
+# Archivos de configuración de IIS
+[Ii][Ss][Ee]Express/
+
+# Archivos de cache y temporales
+*.dbmdl
+*.bak
+*.log
+*.tmp
+
+# Archivos de test y cobertura
+TestResults/
+*.coverage
+*.coveragexml
+*.testsettings
+*.trx
+
+# Archivos de publicación
+publish/
+*.pubxml
+*.publishproj
+
+# Archivos de sistema
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+
+# Archivos de OS
+.DS_Store
