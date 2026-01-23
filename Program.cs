@@ -1,25 +1,64 @@
+
+
+/*program.cs se encarga de: punto de entrada de la api + iniciar + conectar + inyectar + arrancar*/
+using PERPETUUM.Repositories; //para añadir a adscoped
+using PERPETUUM.Services; //para añadir a addscoped
+using System;
+using MySqlConnector;
+using Serilog;
+
+/*genera automáticamente el static void Main(string[] args) por detrás. El args se pasa a CreateBuilder(args) para que la aplicación pueda recibir parámetros de línea de comandos.*/
+
+//configuro inicio de aplicación
 var builder = WebApplication.CreateBuilder(args);
 
-// Add services to the container.
 
+
+//  Configuración de SERILOG
+// Definimos que queremos escribir en consola y en un archivo
+Log.Logger = new LoggerConfiguration()
+    .WriteTo.Console() // Para ver todo en la consola negra
+    .WriteTo.File("Logs.log", 
+        restrictedToMinimumLevel: Serilog.Events.LogEventLevel.Error) // sólo escribe si es ERROR o CRITICAL
+    .CreateLogger();
+
+// Le decimos al Host que use Serilog en lugar del logger por defecto
+builder.Host.UseSerilog(); 
+
+
+//añadir servicios de controlador
 builder.Services.AddControllers();
-// Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
+
+
+
+//inyección de dependencias
+//deceased 
+//FuneralHome 
+//MemorialGuardian 
+//Memory 
+//Staff 
+//User
+
+
+
+
+//añado swagger siembre
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
-var app = builder.Build();
+// construye app con la configuración creada.
+var app = builder.Build();  
 
-// Configure the HTTP request pipeline.
-if (app.Environment.IsDevelopment())
-{
-    app.UseSwagger();
-    app.UseSwaggerUI();
-}
+/// Activar Swagger solo en desarrollo 
+if (app.Environment.IsDevelopment()) { 
+    app.UseSwagger(); 
+    app.UseSwaggerUI(); 
+    }
 
-app.UseHttpsRedirection();
 
-app.UseAuthorization();
-
+//añadir rutas a los controllers
 app.MapControllers();
 
-app.Run();
+//pone en marcha nuestra app a partir de nuestra config y empieza a escuchar peticiones
+app.Run();      
+

@@ -1,0 +1,7 @@
+Logger
+-     volumes:
+     #creo un volumen porque: si edito mi codigo en mi ordenador local --> se modifica el codigo directamente dentro del contenedor, no tengo que reconstruir la imagen cada vez
+    #mi carpeta (.) se refleja en espejo en la carpeta apiFolderInContainer
+    - .:/apiFolderInContainer
+    - ./Logs.log:/LogsFileInContainer.log
+,eter esto en el docker cocmpose para guardarlo en el contenedo.
