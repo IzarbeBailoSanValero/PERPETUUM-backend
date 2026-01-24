@@ -322,71 +322,68 @@ public class DeceasedRepository : IDeceasedRepository
 
 
 
-       public Task<List<Memory>> GetMemoriesByDeceasedIdAsync(int deceased)
+       public async Task<List<Memory>> GetMemoriesByDeceasedIdAsync(int deceasedId)
     {
-        throw new NotImplementedException();
-    }
-
-    //  //LO COMENTO PORQUE AÚN NO EXISTE MOMORIES, NO FUNCIONA{
-    //     _logger.LogInformation($"Iniciando GetMemoriesByDeceasedIdAsync para Deceased Id {deceasedId}");
+   
+         _logger.LogInformation("Iniciando GetMemoriesByDeceasedIdAsync");
         
-    //     var memoryList = new List<Memory>();
+         var memoryList = new List<Memory>();
 
-    //     try
-    //     {
-    //         using (var connection = new MySqlConnection(_connectionString))
-    //         {
-    //             await connection.OpenAsync();
+         try
+         {
+             using (var connection = new MySqlConnection(_connectionString))
+             {
+                 await connection.OpenAsync();
                 
-    //             // Ordenamos por fecha descendente para que salga como un historial
-    //             string query = @"
-    //                 SELECT Id, CreatedDate, Type, Status, TextContent, MediaURL, AuthorRelation, UserId, DeceasedId 
-    //                 FROM Memory 
-    //                 WHERE DeceasedId = @DeceasedId 
-    //                 ORDER BY CreatedDate DESC;";
+                 // Ordenamos por fecha descendente para que salga como un historial
+                 string query = @"
+                     SELECT Id, CreatedDate, Type, Status, TextContent, MediaURL, AuthorRelation, UserId, DeceasedId 
+                     FROM Memory 
+                     WHERE DeceasedId = @DeceasedId 
+                     ORDER BY CreatedDate DESC;";
 
-    //             using (var command = new MySqlCommand(query, connection))
-    //             {
-    //                 command.Parameters.AddWithValue("@DeceasedId", deceasedId);
+                 using (var command = new MySqlCommand(query, connection))
+                 {
+                     command.Parameters.AddWithValue("@DeceasedId", deceasedId);
 
-    //                 using (var reader = await command.ExecuteReaderAsync())
-    //                 {
-    //                     while (await reader.ReadAsync())
-    //                     {
-    //                         memoryList.Add(new Memory
-    //                         {
+                     using (var reader = await command.ExecuteReaderAsync())
+                     {
+                         while (await reader.ReadAsync())
+                         {
+                             memoryList.Add(new Memory
+                             {
                                 
-    //                             Id = reader.GetInt32("Id"),
-    //                             CreatedDate = reader.GetDateTime("CreatedDate"),
-    //                             Type = reader.GetInt32("Type"),
-    //                             Status = reader.GetInt32("Status"),
-    //                             UserId = reader.GetInt32("UserId"),
-    //                             DeceasedId = reader.GetInt32("DeceasedId"),
+                                 Id = reader.GetInt32("Id"),
+                                 CreatedDate = reader.GetDateTime("CreatedDate"),
+                                 Type = reader.GetInt32("Type"),
+                                 Status = reader.GetInt32("Status"),
+                                 UserId = reader.GetInt32("UserId"),
+                                 DeceasedId = reader.GetInt32("DeceasedId"),
 
-    //                             // datos nullables. manejamos con get ordinal y lo pasamos a dbnull. si es nullDB lo pasamos a nullAPI
-    //                             TextContent = reader.IsDBNull(reader.GetOrdinal("TextContent")) ? null : reader.GetString("TextContent"),
-    //                             MediaURL = reader.IsDBNull(reader.GetOrdinal("MediaURL")) ? null : reader.GetString("MediaURL"),
-    //                             AuthorRelation = reader.IsDBNull(reader.GetOrdinal("AuthorRelation")) ? null : reader.GetString("AuthorRelation")
-    //                         });
-    //                     }
-    //                 }
-    //             }
-    //         }
+                                 // datos nullables. manejamos con get ordinal y lo pasamos a dbnull. si es nullDB lo pasamos a nullAPI
+                                 TextContent = reader.IsDBNull(reader.GetOrdinal("TextContent")) ? null : reader.GetString("TextContent"),
+                                 MediaURL = reader.IsDBNull(reader.GetOrdinal("MediaURL")) ? null : reader.GetString("MediaURL"),
+                                 AuthorRelation = reader.IsDBNull(reader.GetOrdinal("AuthorRelation")) ? null : reader.GetString("AuthorRelation")
+                             });
+                         }
+                     }
+                 }
+             }
             
-    //         _logger.LogInformation("exito en la recuperación de lista de memories by deceased");
-    //         return memoryList;
-    //     }
-    //     catch (MySqlException ex)
-    //     {
-    //         _logger.LogError(ex, $"error de MYSQL en petición a BBDD GetAllAsync. Error: {ex.Message}");
-    //         throw;
-    //     }
-    //     catch (Exception ex)
-    //     {
-    //         _logger.LogError(ex, $"error en petición a BBDD GetAllAsync. Error: {ex.Message}");
-    //         throw;
-    //     }
-    // }
+             _logger.LogInformation("exito en la recuperación de lista de memories by deceased");
+             return memoryList;
+         }
+         catch (MySqlException ex)
+         {
+             _logger.LogError(ex, $"error de MYSQL en petición a BBDD GetAllAsync. Error: {ex.Message}");
+             throw;
+         }
+         catch (Exception ex)
+         {
+             _logger.LogError(ex, $"error en petición a BBDD GetAllAsync. Error: {ex.Message}");
+             throw;
+         }
+     }
     
     //buscador 1º trimestre
     // SEARCH
