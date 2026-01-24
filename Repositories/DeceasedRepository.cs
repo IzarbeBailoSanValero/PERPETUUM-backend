@@ -1,95 +1,89 @@
-
 //importaciones
 using MySqlConnector;
-using CHUCHOS.Models;
-using CHUCHOS.DTOs;
+using PERPETUUM.Models;
+using PERPETUUM.DTOs;
 using Microsoft.Extensions.Logging;
+using System.Text;
 
-namespace CHUCHOS.Repositories;
+namespace PERPETUUM.Repositories;
 
-public class ChuchoRepository : IChuchoRepository
+public class DeceasedRepository : IDeceasedRepository
 {
     //variables privadas
     private readonly string _connectionString;
-    private readonly ILogger<ChuchoRepository> _logger;
+    private readonly ILogger<DeceasedRepository> _logger;
+
 
 
     //constructor e inyección DI
-    public ChuchoRepository(IConfiguration configuration, ILogger<ChuchoRepository> logger)
+    public DeceasedRepository(IConfiguration configuration, ILogger<DeceasedRepository> logger)
     {
-        _connectionString = configuration.GetConnectionString("ChuchosDB") ?? throw new ArgumentNullException("La cadena 'ChuchosDB' no existe en appsettings");
+        _connectionString = configuration.GetConnectionString("PerpetuumDB") ?? throw new ArgumentNullException("la cadena 'PerpetuumDB no existe en appsettings'");
         _logger = logger;
     }
 
-    //tasks
-    public async Task<List<Chucho>> GetAllAsync()                               //en getall no imprimo las adoptionrequest, las imprimire en get by id, aquí será null
 
+    //task
+    public async Task<List<Deceased>> GetAllAsync()
     {
-        _logger.LogInformation("iniciando GetAllAsync en chucho");
+        _logger.LogInformation("iniciando GetAllAsync en Deceased");
 
-        //defino vairable de retorno
-        var chuchos = new List<Chucho>();
+        var deceasedList = new List<Deceased>();
+
         try
         {
             using (var connection = new MySqlConnection(_connectionString))
             {
                 //1. abro conexión
                 await connection.OpenAsync();
-
                 //2. construyo la query
-                string query = "SELECT Id, Name, Breed, Background, PhotoUrl, ApproximateBirth, EntryDate, ExitDate, ShelterId, VolunteerId FROM Chucho";
+                string query = "SELECT Id, FuneralHomeId, GuardianId, StaffId, Name, Epitaph, Biography, PhotoURL, BirthDate, DeathDate FROM Deceased";
 
                 using (var command = new MySqlCommand(query, connection))
                 {
                     using (var reader = await command.ExecuteReaderAsync())
                     {
-                        //obtengo el índice de la columna null porque no deja acceder por nombre d ecolumna --> me devuelve el numero de la columna. Isdbnull espera un numero 
-                        int exitDateOrdinal = reader.GetOrdinal("ExitDate");
                         while (await reader.ReadAsync())
                         {
-                            chuchos.Add(new Chucho
+                            deceasedList.Add(new Deceased
                             {
                                 Id = reader.GetInt32("Id"),
+                                FuneralHomeId = reader.GetInt32("FuneralHomeId"),
+                                GuardianId = reader.GetInt32("GuardianId"),
+                                StaffId = reader.GetInt32("StaffId"),
                                 Name = reader.GetString("Name"),
-                                Breed = reader.GetString("Breed"),
-                                Background = reader.GetString("Background"),
-                                PhotoUrl = reader.GetString("PhotoUrl"),
-                                ApproximateBirth = reader.GetDateTime("ApproximateBirth"),
-                                EntryDate = reader.GetDateTime("EntryDate"),
-                                // Usar el índice:
-                                ExitDate = reader.IsDBNull(exitDateOrdinal) ? (DateTime?)null : reader.GetDateTime(exitDateOrdinal),
-                                ShelterId = reader.GetInt32("ShelterId"),
-                                VolunteerId = reader.GetInt32("VolunteerId")
+                                Epitaph = reader.GetString("Epitaph"),
+                                Biography = reader.GetString("Biography"),
+                                PhotoURL = reader.GetString("PhotoURL"),
+                                BirthDate = reader.GetDateTime("BirthDate"),
+                                DeathDate = reader.GetDateTime("DeathDate")
                             });
                         }
                     }
                 }
 
 
+
+
             }
-            _logger.LogInformation("petición a BBDD GetAllAsync para chucho exitosa.");
-            return chuchos;
+            _logger.LogInformation("petición a BBDD GetAllAsync para deceased exitosa.");
+            return deceasedList;
         }
         catch (MySqlException ex)
         {
-            _logger.LogError(ex, $"error de MYSQL en petición a BBDD GetAllAsync. Error: {ex.Message}");
+            _logger.LogError(ex, $"Error de MYSQL en GetAllAsync: {ex.Message}");
             throw;
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, $"error en petición a BBDD GetAllAsync. Error: {ex.Message}");
+            _logger.LogError(ex, $"Error general en GetAllAsync: {ex.Message}");
             throw;
         }
-
     }
-
-
-
-    public async Task<Chucho?> GetByIdAsync(int id)                                    // aquí si imprimo las fichas de oslicitud de adopción
+    public async Task<Deceased?> GetByIdAsync(int id)
     {
-        _logger.LogInformation("iniciando GetByIdAsync en chucho");
-
-        Chucho? chucho = null;
+        _logger.LogInformation("iniciando getByIdAsync en deceased");
+        Deceased? deceased = null;
 
         try
         {
@@ -97,10 +91,9 @@ public class ChuchoRepository : IChuchoRepository
             {
                 await connection.OpenAsync();
 
-                //primero saco el chucho y luego la lista de solicitudes para ese chucho, sobre la que iteraré para pintar resultados
                 string query = @"
-                SELECT Id, Name, Breed, Background, PhotoUrl, ApproximateBirth, EntryDate, ExitDate, ShelterId, VolunteerId FROM Chucho WHERE Id = @Id;
-                SELECT Id, RequestDate, RequestMessage, RequestState, ChuchoRequestedId, UserRequesterId FROM AdoptionRequest WHERE Id = @Id;
+                SELECT Id, FuneralHomeId, GuardianId, StaffId, Name, Epitaph, Biography, PhotoURL, BirthDate, DeathDate FROM Deceased WHERE Id = @Id;
+                SELECT Id, CreatedDate, Type, Status, TextContent, MediaURL, AuthorRelation, UserId, DeceasedId FROM Memory WHERE DeceasedId = @Id;
                 ";
 
                 using (var command = new MySqlCommand(query, connection))
@@ -111,78 +104,82 @@ public class ChuchoRepository : IChuchoRepository
                     {
                         if (await reader.ReadAsync())
                         {
-                            //obtengo el índice de la columna null porque no deja acceder por nombre d ecolumna --> me devuelve el numero de la columna. Isdbnull espera un numero 
-                            int exitDateOrdinal = reader.GetOrdinal("ExitDate");
-                            chucho = (new Chucho
+                            deceased = new Deceased
                             {
                                 Id = reader.GetInt32("Id"),
+                                FuneralHomeId = reader.GetInt32("FuneralHomeId"),
+                                GuardianId = reader.GetInt32("GuardianId"),
+                                StaffId = reader.GetInt32("StaffId"),
                                 Name = reader.GetString("Name"),
-                                Breed = reader.GetString("Breed"),
-                                Background = reader.GetString("Background"),
-                                PhotoUrl = reader.GetString("PhotoUrl"),
-                                ApproximateBirth = reader.GetDateTime("ApproximateBirth"),
-                                EntryDate = reader.GetDateTime("EntryDate"),
-                                // Usar el índice:
-                                ExitDate = reader.IsDBNull(exitDateOrdinal) ? (DateTime?)null : reader.GetDateTime(exitDateOrdinal),
-                                ShelterId = reader.GetInt32("ShelterId"),
-                                VolunteerId = reader.GetInt32("VolunteerId"),
-                                Requests = new List<AdoptionRequest>()
-
-                            });
-                        }
-                        if (chucho == null)
-                        {
-                            _logger.LogWarning($"Petición a BBDD GetByIdAsync fallida. Chucho con id:{id} NO encontrado");
-                            return null;
+                                Epitaph = reader.GetString("Epitaph"),
+                                Biography = reader.GetString("Biography"),
+                                PhotoURL = reader.GetString("PhotoURL"),
+                                BirthDate = reader.GetDateTime("BirthDate"),
+                                DeathDate = reader.GetDateTime("DeathDate"),
+                                Memories = new List<Memory>()
+                            };
                         }
 
-                        if (await reader.NextResultAsync()) //si hay siguiente conjunto de datos --> las request
+                        if (await reader.NextResultAsync()) //si hay siguiente conjunto de datos --> las memories del difunto 
                         {
-                            var requests = new List<AdoptionRequest>();
+                            //creo el listado de memories que cargará las fotos, condolencias y anécdotas
+                            var memories = new List<Memory>();
+
+                            //foto, condolencia y anecdota puede ser nulo, los gestiono para no recibir errores de conversión de nulos de db-api. si hiciesemos un getstring de algo nulo nos daría excepcion. con reader.isdbnull sí tolera.
+                            int textContentOrdinal = reader.GetOrdinal("TextContent");
+                            int mediaUrlOrdinal = reader.GetOrdinal("MediaURL");
+                            int authorRelationOrdinal = reader.GetOrdinal("AuthorRelation");
+
                             while (await reader.ReadAsync())
                             {
-                                var req = new AdoptionRequest
+                                memories.Add(new Memory
                                 {
                                     Id = reader.GetInt32("Id"),
-                                    RequestDate = reader.GetDateTime("RequestDate"),
-                                    RequestMessage = reader.GetString("RequestMessage"),
-                                    RequestState = reader.GetInt32("RequestState"),
-                                    ChuchoRequestedId = reader.GetInt32("ChuchoRequestedId"),
-                                    UserRequesterId = reader.GetInt32("UserRequesterId")
-                                };
-                                requests.Add(req);
+                                    CreatedDate = reader.GetDateTime("CreatedDate"),
+                                    Type = reader.GetInt32("Type"),
+                                    Status = reader.GetInt32("Status"),
+                                    TextContent = reader.IsDBNull(textContentOrdinal) ? null : reader.GetString(textContentOrdinal),
+                                    MediaURL = reader.IsDBNull(mediaUrlOrdinal) ? null : reader.GetString(mediaUrlOrdinal),
+                                    AuthorRelation = reader.IsDBNull(authorRelationOrdinal) ? null : reader.GetString(authorRelationOrdinal),
+                                    UserId = reader.GetInt32("UserId"),
+                                    DeceasedId = reader.GetInt32("DeceasedId")
+                                });
                             }
 
-                            chucho.Requests = requests;
+                            deceased.Memories = memories;
 
                         }
 
+                        if (deceased == null)
+                        {
+                            _logger.LogWarning($"Deceased con id:{id} NO encontrado");
+                            return null;
+                        }
                     }
+
                 }
 
-
             }
-
-            return chucho; //chucho encontrado o null
-
+            
         }
         catch (MySqlException ex)
         {
-            _logger.LogError(ex, $"error de MYSQL en petición a BBDD GetByIdAsync. Error: {ex.Message}");
+            _logger.LogError(ex, $"Error de MYSQL en GetByIdAsync: {ex.Message}");
             throw;
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, $"error en petición a BBDD GetByIdAsync. Error: {ex.Message}");
+            _logger.LogError(ex, $"Error general en GetByIdAsync: {ex.Message}");
             throw;
         }
+        return deceased;
+
     }
 
 
-    public async Task<int> AddAsync(Chucho chucho)
+    public async Task<int> AddAsync(Deceased deceased)
     {
-        _logger.LogInformation("Iniciando AddAsync en Chucho");
-
+        _logger.LogInformation("Iniciando AddAsync en Deceased");
         int newId = 0;
 
         try
@@ -192,57 +189,52 @@ public class ChuchoRepository : IChuchoRepository
                 await connection.OpenAsync();
 
                 string query = @"
-               INSERT INTO Chucho (Name, Breed, Background, PhotoUrl, ApproximateBirth, EntryDate, ExitDate, ShelterId, VolunteerId) 
-            VALUES (@Name, @Breed, @Background, @PhotoUrl, @ApproximateBirth, @EntryDate, @ExitDate, @ShelterId, @VolunteerId);
-            SELECT LAST_INSERT_ID();
-            ";
+                INSERT INTO Deceased 
+                (FuneralHomeId, GuardianId, StaffId, Name, Epitaph, Biography, PhotoURL, BirthDate, DeathDate) 
+                VALUES 
+                (@FuneralHomeId, @GuardianId, @StaffId, @Name, @Epitaph, @Biography, @PhotoURL, @BirthDate, @DeathDate);
+                SELECT LAST_INSERT_ID();";
 
                 using (var command = new MySqlCommand(query, connection))
                 {
-                    command.Parameters.AddWithValue("@Name", chucho.Name);
-                    command.Parameters.AddWithValue("@Breed", chucho.Breed);
-                    command.Parameters.AddWithValue("@Background", chucho.Background);
-                    command.Parameters.AddWithValue("@PhotoUrl", chucho.PhotoUrl);
-                    command.Parameters.AddWithValue("@ApproximateBirth", chucho.ApproximateBirth);
-                    command.Parameters.AddWithValue("@EntryDate", chucho.EntryDate);
-                    //(lo he buscado)
-                    //el null de c# no es le mismo que el de la base de datos. Primero compruebo si el objeto que quiero insertar tiene null en la propiedad y sino fijo el valor en el DBnull que acepta la base d edatos
-                    //hay que castearlo a object porque : el ternario espera valores del mismo tipo. como tengodatetime vs dbnull, casteo el datetime a object (el tipo más genérico para que lo acepte )
-                    command.Parameters.AddWithValue("@ExitDate", chucho.ExitDate != null ? (object)chucho.ExitDate.Value : DBNull.Value);
-
-                    command.Parameters.AddWithValue("@ShelterId", chucho.ShelterId);
-                    command.Parameters.AddWithValue("@VolunteerId", chucho.VolunteerId);
-
-
+                    command.Parameters.AddWithValue("@FuneralHomeId", deceased.FuneralHomeId);
+                    command.Parameters.AddWithValue("@GuardianId", deceased.GuardianId);
+                    command.Parameters.AddWithValue("@StaffId", deceased.StaffId);
+                    command.Parameters.AddWithValue("@Name", deceased.Name);
+                    command.Parameters.AddWithValue("@Epitaph", deceased.Epitaph);
+                    command.Parameters.AddWithValue("@Biography", deceased.Biography);
+                    command.Parameters.AddWithValue("@PhotoURL", deceased.PhotoURL);
+                    command.Parameters.AddWithValue("@BirthDate", deceased.BirthDate);
+                    command.Parameters.AddWithValue("@DeathDate", deceased.DeathDate);
                     // Obtengo el ID generado, he buscado cómo.
                     /*
                     Execute Scalar ejecuta consultaSQL + devuelve primera fila + primera colimna --> LAST_INSERT_ID()
                     Devuelve un Object, por si no devuelve nada(null) manejamos la conversión con null ? 0: otro caso
                     no hacemos cast inmediato (int)numero por si ddbb devuelve long, decimal... -->convert.ToInt32 (en lugar de convertir solo int, convierte tipos compatibles)
+                    Porque LAST_INSERT_ID() devuelve el valor del AUTO_INCREMENT generado en esa misma conexión.
+                    Y como ExecuteScalar() toma la primera columna de la primera fila, te entrega exactamente ese ID.
                     */
                     var result = await command.ExecuteScalarAsync();
                     newId = result is null ? 0 : Convert.ToInt32(result);
-
                 }
             }
-
-            return newId;
+        
         }
-        catch (MySqlException ex) //en principio no porque no hay restricciones unique
+        catch (MySqlException ex)
         {
-            _logger.LogError(ex, $"Error de MYSQL en AddAsync. Error: {ex.Message}");
+            _logger.LogError(ex, $"Error de MYSQL en AddAsync: {ex.Message}");
             throw;
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, $"Error general en AddAsync. Error: {ex.Message}");
+            _logger.LogError(ex, $"Error general en AddAsync: {ex.Message}");
             throw;
-        }
+        }    
+        return newId;
     }
 
 
-
-    public async Task<bool> UpdateAsync(Chucho chucho)
+    public async Task<bool> UpdateAsync(Deceased deceased)
     {
         bool hasBeenUpdated = false;
         try
@@ -252,92 +244,70 @@ public class ChuchoRepository : IChuchoRepository
                 await connection.OpenAsync();
 
                 string query = @"
-           UPDATE Chucho
-                SET
+                UPDATE Deceased SET
+                    FuneralHomeId = @FuneralHomeId,
+                    GuardianId = @GuardianId,
+                    StaffId = @StaffId,
                     Name = @Name,
-                    Breed = @Breed,
-                    Background = @Background,
-                    PhotoUrl = @PhotoUrl,
-                    ApproximateBirth = @ApproximateBirth,
-                    EntryDate = @EntryDate,
-                    ExitDate = @ExitDate,
-                    ShelterId = @ShelterId,
-                    VolunteerId = @VolunteerId
-                WHERE Id = @Id;
-                ";
+                    Epitaph = @Epitaph,
+                    Biography = @Biography,
+                    PhotoURL = @PhotoURL,
+                    BirthDate = @BirthDate,
+                    DeathDate = @DeathDate
+                WHERE Id = @Id;";
 
                 using (var command = new MySqlCommand(query, connection))
                 {
-                    command.Parameters.AddWithValue("@Id", chucho.Id);
-                    command.Parameters.AddWithValue("@Name", chucho.Name);
-                    command.Parameters.AddWithValue("@Breed", chucho.Breed);
-                    command.Parameters.AddWithValue("@Background", chucho.Background);
-                    command.Parameters.AddWithValue("@PhotoUrl", chucho.PhotoUrl);
-                    command.Parameters.AddWithValue("@ApproximateBirth", chucho.ApproximateBirth);
-                    command.Parameters.AddWithValue("@EntryDate", chucho.EntryDate);
-                    command.Parameters.AddWithValue("@ExitDate", chucho.ExitDate.HasValue ? (object)chucho.ExitDate.Value : DBNull.Value);
-                    command.Parameters.AddWithValue("@ShelterId", chucho.ShelterId);
-                    command.Parameters.AddWithValue("@VolunteerId", chucho.VolunteerId);
+                    command.Parameters.AddWithValue("@Id", deceased.Id);
+                    command.Parameters.AddWithValue("@FuneralHomeId", deceased.FuneralHomeId);
+                    command.Parameters.AddWithValue("@GuardianId", deceased.GuardianId);
+                    command.Parameters.AddWithValue("@StaffId", deceased.StaffId);
+                    command.Parameters.AddWithValue("@Name", deceased.Name);
+                    command.Parameters.AddWithValue("@Epitaph", deceased.Epitaph);
+                    command.Parameters.AddWithValue("@Biography", deceased.Biography);
+                    command.Parameters.AddWithValue("@PhotoURL", deceased.PhotoURL);
+                    command.Parameters.AddWithValue("@BirthDate", deceased.BirthDate);
+                    command.Parameters.AddWithValue("@DeathDate", deceased.DeathDate);
+
 
                     //nonQueryAsync --> ejecuta + devuelve numero de registros aceptados. Si es mayor que 0, ha funcionado
                     int rowsAffected = await command.ExecuteNonQueryAsync();
-
-                    if (rowsAffected > 0)
-                    {
-                        hasBeenUpdated = true;
-                    }
-
-
+                    if (rowsAffected > 0) hasBeenUpdated = true;
                 }
             }
         }
         catch (MySqlException ex)
         {
-            _logger.LogError(ex, $"Error de MYSQL en UpdateAsync. Error: {ex.Message}");
+            _logger.LogError(ex, $"Error de MYSQL en GetByIdAsync: {ex.Message}");
             throw;
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, $"Error general en UpdateAsync. Error: {ex.Message}");
+            _logger.LogError(ex, $"Error general en GetByIdAsync: {ex.Message}");
             throw;
         }
         return hasBeenUpdated;
     }
-
-
-
     public async Task<bool> DeleteAsync(int id)
     {
+         _logger.LogInformation("Iniciando DeleteAsync en Deceased ");
         bool hasBeenDeleted = false;
-
         try
         {
             using (var connection = new MySqlConnection(_connectionString))
             {
                 await connection.OpenAsync();
-
-                string query = @" DELETE FROM Chucho WHERE Id = @Id; ";
+                string query = @"DELETE FROM Deceased WHERE Id = @Id;";
 
                 using (var command = new MySqlCommand(query, connection))
                 {
                     command.Parameters.AddWithValue("@Id", id);
-
-
-
-                    //nonQueryAsync --> ejecuta + devuelve numero de registros aceptados. Si es mayor que 0, ha funcionado
                     int rowsAffected = await command.ExecuteNonQueryAsync();
-
-                    if (rowsAffected > 0)
-                    {
-                        hasBeenDeleted = true;
-                    }
-
-
+                    if (rowsAffected > 0) hasBeenDeleted = true;
                 }
             }
-
         }
-        catch (MySqlException ex)
+        catch (MySqlException ex) 
         {
             _logger.LogError(ex, $"Error de MYSQL en DeleteAsync. Error: {ex.Message}");
             throw;
@@ -352,15 +322,80 @@ public class ChuchoRepository : IChuchoRepository
 
 
 
-
-
-    //funcionalidad hecha con ayuda
-    public async Task<List<Chucho>> SearchAsync(ChuchoSearchDTO searchDTO)
+       public Task<List<Memory>> GetMemoriesByDeceasedIdAsync(int deceased)
     {
-        _logger.LogInformation("inicio de busqueda");
+        throw new NotImplementedException();
+    }
 
-        //inicializo lista a devolver
-        var chuchos = new List<Chucho>();
+    //  //LO COMENTO PORQUE AÚN NO EXISTE MOMORIES, NO FUNCIONA{
+    //     _logger.LogInformation($"Iniciando GetMemoriesByDeceasedIdAsync para Deceased Id {deceasedId}");
+        
+    //     var memoryList = new List<Memory>();
+
+    //     try
+    //     {
+    //         using (var connection = new MySqlConnection(_connectionString))
+    //         {
+    //             await connection.OpenAsync();
+                
+    //             // Ordenamos por fecha descendente para que salga como un historial
+    //             string query = @"
+    //                 SELECT Id, CreatedDate, Type, Status, TextContent, MediaURL, AuthorRelation, UserId, DeceasedId 
+    //                 FROM Memory 
+    //                 WHERE DeceasedId = @DeceasedId 
+    //                 ORDER BY CreatedDate DESC;";
+
+    //             using (var command = new MySqlCommand(query, connection))
+    //             {
+    //                 command.Parameters.AddWithValue("@DeceasedId", deceasedId);
+
+    //                 using (var reader = await command.ExecuteReaderAsync())
+    //                 {
+    //                     while (await reader.ReadAsync())
+    //                     {
+    //                         memoryList.Add(new Memory
+    //                         {
+                                
+    //                             Id = reader.GetInt32("Id"),
+    //                             CreatedDate = reader.GetDateTime("CreatedDate"),
+    //                             Type = reader.GetInt32("Type"),
+    //                             Status = reader.GetInt32("Status"),
+    //                             UserId = reader.GetInt32("UserId"),
+    //                             DeceasedId = reader.GetInt32("DeceasedId"),
+
+    //                             // datos nullables. manejamos con get ordinal y lo pasamos a dbnull. si es nullDB lo pasamos a nullAPI
+    //                             TextContent = reader.IsDBNull(reader.GetOrdinal("TextContent")) ? null : reader.GetString("TextContent"),
+    //                             MediaURL = reader.IsDBNull(reader.GetOrdinal("MediaURL")) ? null : reader.GetString("MediaURL"),
+    //                             AuthorRelation = reader.IsDBNull(reader.GetOrdinal("AuthorRelation")) ? null : reader.GetString("AuthorRelation")
+    //                         });
+    //                     }
+    //                 }
+    //             }
+    //         }
+            
+    //         _logger.LogInformation("exito en la recuperación de lista de memories by deceased");
+    //         return memoryList;
+    //     }
+    //     catch (MySqlException ex)
+    //     {
+    //         _logger.LogError(ex, $"error de MYSQL en petición a BBDD GetAllAsync. Error: {ex.Message}");
+    //         throw;
+    //     }
+    //     catch (Exception ex)
+    //     {
+    //         _logger.LogError(ex, $"error en petición a BBDD GetAllAsync. Error: {ex.Message}");
+    //         throw;
+    //     }
+    // }
+    
+    //buscador 1º trimestre
+    // SEARCH
+    public async Task<List<Deceased>> SearchAsync(DeceasedSearchDTO searchDTO)
+    {
+        _logger.LogInformation("Inicio de búsqueda en Deceased");
+
+        //defino variable de retorno
+        var deceasedList = new List<Deceased>();
 
         try
         {
@@ -368,177 +403,76 @@ public class ChuchoRepository : IChuchoRepository
             {
                 await connection.OpenAsync();
 
-                //1. variable que creará la query, inicializo
+                 //1. variable que creará la query, inicializo
                 //stringbuilder sirve para crear strings mediante concatenación
                 var sqlBuilder = new System.Text.StringBuilder();
-
-                //where 1 = 1 para ir podiendo hacer AND otra condición de carrera
-                sqlBuilder.Append("SELECT Id, Name, Breed, Background, PhotoUrl, ApproximateBirth, EntryDate, ExitDate, ShelterId, VolunteerId FROM Chucho WHERE 1=1 ");
-
-                // FILTROS
-
-                // si es mentira que el string llamado breed está vacío --> añado AND
-                if (!string.IsNullOrEmpty(searchDTO.Breed))
+                
+                 //2. where 1 = 1 para ir podiendo hacer AND otra condición de carrera
+                sqlBuilder.Append("SELECT Id, FuneralHomeId, GuardianId, StaffId, Name, Epitaph, Biography, PhotoURL, BirthDate, DeathDate FROM Deceased WHERE 1=1 ");
+                
+                //3. FILTROS DE BÚSQUEDA 
+                //si hay contenido en los siguientes campos, los concatena
+                if (!string.IsNullOrEmpty(searchDTO.Name))
                 {
-                    sqlBuilder.Append(" AND Breed LIKE @Breed ");
+                    sqlBuilder.Append(" AND Name LIKE @Name ");
                 }
 
-                //La función TIMESTAMPDIFF()  sirve para calcular la diferencia entre dos valores de fecha o fecha-hora, devolviendo el resultado en la unidad de tiempo especificada
-                //unidad --> years, fecha de inicio, fecha de fin (hoy) --> da la edad <= edad maxima
-                if (searchDTO.MaxAge.HasValue)
+                //en el dto introducimos solo el año de defunción. el usuario ingresa el año. ese año se compara con el año de la deathDate completa. YEAR(fecha) coge solo el año
+                if (searchDTO.DeathYear.HasValue)
                 {
-                    sqlBuilder.Append(" AND TIMESTAMPDIFF(YEAR, ApproximateBirth, CURDATE()) <= @MaxAge ");
+                    sqlBuilder.Append(" AND YEAR(DeathDate) = @DeathYear ");
                 }
-
 
                 if (!string.IsNullOrEmpty(searchDTO.SortBy))
                 {
                     sqlBuilder.Append($" ORDER BY {searchDTO.SortBy}");
                 }
 
-                // Cerramos la sentencia SQL
+                //4. FINALIZAR CONSULTA SQL
                 sqlBuilder.Append(";");
 
-                // query ya creada entera, ahora la ejecutamos
 
+                //5. REALIZAR CONEXIÓN Y EJECUTAR CONSULTA
                 using (var command = new MySqlCommand(sqlBuilder.ToString(), connection))
                 {
-                    // Solo añadimos los parámetros de los filtros si se usaron
-                    if (!string.IsNullOrEmpty(searchDTO.Breed))
-                        command.Parameters.AddWithValue("@Breed", $"%{searchDTO.Breed}%");
+                    //añadimos los pa´rametros si se han utilizado
+                    if (!string.IsNullOrEmpty(searchDTO.Name))
+                        //le ponemos la interpolación con los %por si está incompleto (LIKE de ddbb)
+                        command.Parameters.AddWithValue("@Name", $"%{searchDTO.Name}%");
 
-                    if (searchDTO.MaxAge.HasValue)
-                        command.Parameters.AddWithValue("@MaxAge", searchDTO.MaxAge.Value);
+                    //como int es un tipo nullable, hay que poner le .value, sino da error al intentar acceder al numeroq ue contiene un int
+                    if (searchDTO.DeathYear.HasValue)
+                        command.Parameters.AddWithValue("@DeathYear", searchDTO.DeathYear.Value);
 
                     using (var reader = await command.ExecuteReaderAsync())
                     {
                         while (await reader.ReadAsync())
                         {
-                            chuchos.Add(new Chucho
-                            {
-                                Id = Convert.ToInt32(reader["Id"]),
-                                Name = reader["Name"].ToString(),
-                                Breed = reader["Breed"].ToString(),
-                                Background = reader["Background"].ToString(),
-                                PhotoUrl = reader["PhotoUrl"].ToString(),
-                                ApproximateBirth = Convert.ToDateTime(reader["ApproximateBirth"]),
-                                EntryDate = Convert.ToDateTime(reader["EntryDate"]),
-                                // Validación básica de nulo para fecha de salida
-                                ExitDate = reader["ExitDate"] == DBNull.Value ? null : Convert.ToDateTime(reader["ExitDate"]),
-                                ShelterId = Convert.ToInt32(reader["ShelterId"]),
-                                VolunteerId = Convert.ToInt32(reader["VolunteerId"])
-                            });
+                           deceasedList.Add(new Deceased { Id = reader.GetInt32("Id"), 
+                           FuneralHomeId = reader.GetInt32("FuneralHomeId"), 
+                           GuardianId = reader.GetInt32("GuardianId"), 
+                           StaffId = reader.GetInt32("StaffId"), 
+                           Name = reader.GetString("Name"), 
+                           Epitaph = reader.GetString("Epitaph"), 
+                           Biography = reader.GetString("Biography"), 
+                           PhotoURL = reader.GetString("PhotoURL"), 
+                           BirthDate = reader.GetDateTime("BirthDate"), 
+                           DeathDate = reader.GetDateTime("DeathDate") });
                         }
                     }
                 }
             }
-            return chuchos;
+            return deceasedList;
         }
-        catch (Exception ex)
+         catch (MySqlException ex) 
         {
-            _logger.LogError(ex, "Error en búsqueda");
-            throw;
-        }
-    }
-
-
-
-
-
-
-
-
-
-
-
-
-
-    public async Task<List<Opinion>> GetOpinionsByChuchoIdAsync(int chuchoId)
-    {
-        _logger.LogInformation($"iniciando GetOpinionsByChuchoIdAsync en chucho con id {chuchoId}");
-
-        List<Opinion> opinionListModels = new List<Opinion>();
-
-
-        try
-        {
-            using (var connection = new MySqlConnection(_connectionString))
-            {
-                await connection.OpenAsync();
-
-                string query = "SELECT Id, OpinionDate, OpinionMessage, Puntuation, ChuchoId, UserId FROM Opinion WHERE ChuchoId = @chuchoId;";
-
-
-
-                using (var command = new MySqlCommand(query, connection))
-                {
-                    command.Parameters.AddWithValue("@chuchoId", chuchoId);
-
-
-                    using (var reader = await command.ExecuteReaderAsync())
-                    {
-
-                        while (await reader.ReadAsync())
-                        {
-                            var newOpinion = new Opinion
-                            {
-                                Id = reader.GetInt32("Id"),
-                                OpinionDate = reader.GetDateTime("OpinionDate"),
-                                OpinionMessage = reader.GetString("OpinionMessage"),
-                                Puntuation = reader.GetInt32("Puntuation"),
-                                ChuchoId = reader.GetInt32("ChuchoId"),
-                                UserId = reader.GetInt32("UserId")
-                            };
-
-                            opinionListModels.Add(newOpinion);
-
-
-                        }
-                    }
-                }
-
-
-            }
-
-
-            _logger.LogInformation($"petición a BBDD GetOpinionsByIdAsync exitosa.  se ha encontrado el listado de opiniones del chucho  con id {chuchoId} ");
-
-
-            return opinionListModels;
-
-        }
-        catch (MySqlException ex)
-        {
-            _logger.LogError(ex, $"error de MYSQL en petición a BBDD GetOpinionsByIdAsync. Error: {ex.Message}");
+            _logger.LogError(ex, $"Error de MYSQL en SearchAsync. Error: {ex.Message}");
             throw;
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, $"error en petición a BBDD GetOpinionsByIdAsync. Error: {ex.Message}");
+            _logger.LogError(ex, $"Error general en SearchAsync. Error: {ex.Message}");
             throw;
         }
-
-
     }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 }

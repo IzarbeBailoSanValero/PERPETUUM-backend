@@ -50,7 +50,7 @@ CREATE TABLE Deceased (
     GuardianId INT NOT NULL, 
     StaffId INT NOT NULL, 
     Name VARCHAR(255) NOT NULL, 
-    Epitaph VARCHAR(255), 
+    Epitaph VARCHAR(255) NOT NULL, 
     Biography TEXT NOT NULL, 
     PhotoURL VARCHAR(500) NOT NULL, 
     BirthDate DATE NOT NULL, 

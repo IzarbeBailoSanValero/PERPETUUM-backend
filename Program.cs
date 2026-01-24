@@ -2,8 +2,7 @@
 
 /*program.cs se encarga de: punto de entrada de la api + iniciar + conectar + inyectar + arrancar*/
 using PERPETUUM.Repositories; //para añadir a adscoped
-using PERPETUUM.Services; //para añadir a addscoped
-using System;
+//using PERPETUUM.Services; //para añadir a addscoped using System;
 using MySqlConnector;
 using Serilog;
 
