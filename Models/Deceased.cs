@@ -3,6 +3,7 @@ namespace PERPETUUM.Models;
 public class Deceased
 {
     public int Id { get; set; }
+    public string Dni { get; set; }
     public string Name { get; set; }
     public string Epitaph { get; set; }
     public string Biography { get; set; }

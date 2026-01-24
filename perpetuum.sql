@@ -46,6 +46,7 @@ CREATE TABLE MemorialGuardian (
 -- 5. DECEASED 
 CREATE TABLE Deceased (
     Id INT PRIMARY KEY AUTO_INCREMENT,
+    Dni VARCHAR(20) NOT NULL UNIQUE,
     FuneralHomeId INT NOT NULL,
     GuardianId INT NOT NULL, 
     StaffId INT NOT NULL, 
@@ -106,12 +107,13 @@ INSERT INTO MemorialGuardian (FuneralHomeId, StaffId, Name, DNI, Email, PhoneNum
 (4, 5, 'Brais Méndez (Hermano)', '33445566L', 'brais.m@outlook.es', '622333444'),
 (1, 3, 'Elena García (Sobrina)', '22334455K', 'elena.g@familia.es', '633444555');
 
-INSERT INTO Deceased (FuneralHomeId, GuardianId, StaffId, Name, Epitaph, Biography, PhotoURL, BirthDate, DeathDate) VALUES 
-(1, 1, 1, 'Don Manuel Pérez', 'Un hombre de campo', 'Bio...', 'https://...', '1945-05-15', '2024-01-10'),
-(2, 2, 2, 'Doña Sofía Martínez', 'Su luz...', 'Bio...', 'https://...', '1952-08-22', '2023-12-15'),
-(3, 3, 4, 'Ricardo Torres', 'Visionario...', 'Bio...', 'https://...', '1938-10-10', '2025-01-05'),
-(4, 4, 5, 'Uxía Castro', 'A voz...', 'Bio...', 'https://...', '1942-02-28', '2025-01-12'),
-(1, 5, 3, 'Julian García', 'Abuelo...', 'Bio...', 'https://...', '1930-11-11', '2025-01-18');
+INSERT INTO Deceased (Dni, FuneralHomeId, GuardianId, StaffId, Name, Epitaph, Biography, PhotoURL, BirthDate, DeathDate) VALUES 
+('11111111A', 1, 1, 1, 'Don Manuel Pérez', 'Un hombre de campo', 'Bio...', 'https://...', '1945-05-15', '2024-01-10'),
+('22222222B', 2, 2, 2, 'Doña Sofía Martínez', 'Su luz...', 'Bio...', 'https://...', '1952-08-22', '2023-12-15'),
+('33333333C', 3, 3, 4, 'Ricardo Torres', 'Visionario...', 'Bio...', 'https://...', '1938-10-10', '2025-01-05'),
+('44444444D', 4, 4, 5, 'Uxía Castro', 'A voz...', 'Bio...', 'https://...', '1942-02-28', '2025-01-12'),
+('55555555E', 1, 5, 3, 'Julian García', 'Abuelo...', 'Bio...', 'https://...', '1930-11-11', '2025-01-18');
+
 
 INSERT INTO Memory (Type, Status, TextContent, MediaURL, AuthorRelation, DeceasedId, UserId) VALUES 
 (1, 1, 'Siento mucho vuestra pérdida...', NULL, 'Amigo', 3, 1),

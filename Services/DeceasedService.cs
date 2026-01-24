@@ -1,4 +1,3 @@
-//using
 using PERPETUUM.Repositories;
 using PERPETUUM.DTOs;
 using PERPETUUM.Models;
@@ -17,26 +16,22 @@ public class DeceasedService : IDeceasedService
         _logger = logger;
     }
 
-
-
     public async Task<List<DeceasedResponseDTO>> GetAllDeceasedAsync()
     {
-       _logger.LogInformation("Service: Obteniendo todos los difuntos");
+        _logger.LogInformation("Service: Obteniendo todos los difuntos");
         var models = await _repository.GetAllAsync();
         var dtos = new List<DeceasedResponseDTO>();
 
         foreach (var m in models)
         {
-            dtos.Add(MapModelToDTO(m, includeMemories: false)); //se puede poner así, es lo mismo que (m,false) pero se lee mejor, lo dejo así
+            dtos.Add(MapModelToDTO(m, includeMemories: false));
         }
         return dtos;
     }
 
-
-
     public async Task<DeceasedResponseDTO?> GetDeceasedProfileAsync(int id)
     {
-       _logger.LogInformation("Service: Obteniendo difunto por id");
+        _logger.LogInformation("Service: Obteniendo difunto por id");
         var model = await _repository.GetByIdAsync(id);
 
         if (model == null) return null;
@@ -44,17 +39,22 @@ public class DeceasedService : IDeceasedService
         return MapModelToDTO(model, includeMemories: true);
     }
 
-
-
     public async Task<int> CreateDeceasedAsync(DeceasedCreateDTO dto)
     {
         ValidateDates(dto.BirthDate, dto.DeathDate);
+
+        bool exists = await _repository.ExistsByDniAsync(dto.Dni);
+        if (exists)
+        {
+            throw new ArgumentException($"Ya existe un difunto registrado con el DNI {dto.Dni}");
+        }
 
         var newDeceased = new Deceased
         {
             FuneralHomeId = dto.FuneralHomeId,
             GuardianId = dto.GuardianId,
             StaffId = dto.StaffId,
+            Dni = dto.Dni, 
             Name = dto.Name,
             Epitaph = dto.Epitaph,
             Biography = dto.Biography,
@@ -63,8 +63,8 @@ public class DeceasedService : IDeceasedService
             DeathDate = dto.DeathDate
         };
 
-        int newDeceasedId =  await _repository.AddAsync(newDeceased);
-         _logger.LogInformation($"difunto añadido con éxito. El id del nuevo difunto es {newDeceasedId}");
+        int newDeceasedId = await _repository.AddAsync(newDeceased);
+        _logger.LogInformation($"Difunto añadido con éxito. El id del nuevo difunto es {newDeceasedId}");
 
         return newDeceasedId;
     }
@@ -76,12 +76,15 @@ public class DeceasedService : IDeceasedService
 
         ValidateDates(dto.BirthDate, dto.DeathDate);
 
+     
+
         var updatedDeceased = new Deceased
         {
             Id = dto.Id,
             FuneralHomeId = dto.FuneralHomeId,
             GuardianId = dto.GuardianId,
             StaffId = dto.StaffId,
+            Dni = dto.Dni, 
             Name = dto.Name,
             Epitaph = dto.Epitaph,
             Biography = dto.Biography,
@@ -94,21 +97,18 @@ public class DeceasedService : IDeceasedService
         return hasBeenUpdated;
     }
 
-
-   public async Task<bool> DeleteDeceasedAsync(int id)
+    public async Task<bool> DeleteDeceasedAsync(int id)
     {
         var existing = await _repository.GetByIdAsync(id);
         if (existing == null) return false;
 
-        bool hasBeenDeleted =await _repository.DeleteAsync(id);
+        bool hasBeenDeleted = await _repository.DeleteAsync(id);
         return hasBeenDeleted;
     }
 
-
-   
-public async Task<List<DeceasedResponseDTO>> SearchDeceasedAsync(DeceasedSearchDTO searchDTO)
+    public async Task<List<DeceasedResponseDTO>> SearchDeceasedAsync(DeceasedSearchDTO searchDTO)
     {
-        if (!string.IsNullOrEmpty(searchDTO.Name)) searchDTO.Name = searchDTO.Name.Trim(); //quita espacios delante y detrás par aenviar bine el dto
+        if (!string.IsNullOrEmpty(searchDTO.Name)) searchDTO.Name = searchDTO.Name.Trim();
 
         var models = await _repository.SearchAsync(searchDTO);
         var dtos = new List<DeceasedResponseDTO>();
@@ -120,7 +120,7 @@ public async Task<List<DeceasedResponseDTO>> SearchDeceasedAsync(DeceasedSearchD
         return dtos;
     }
 
-public async Task<List<MemoryResponseDTO>> GetMemoriesByDeceasedIdAsync(int deceasedId)
+    public async Task<List<MemoryResponseDTO>> GetMemoriesByDeceasedIdAsync(int deceasedId)
     {
         var deceased = await _repository.GetByIdAsync(deceasedId);
         if (deceased == null)
@@ -138,8 +138,7 @@ public async Task<List<MemoryResponseDTO>> GetMemoriesByDeceasedIdAsync(int dece
         return memoryDTOs;
     }
 
-
-    //- - - MÉTODOS PRIVADOS - - - (Idea de chatgpt, me ha gustado, los cojo con su estructura, muy buena,  todo más limpio)
+    //- - - MÉTODOS PRIVADOS - - - 
     private void ValidateDates(DateTime birth, DateTime death)
     {
         if (birth > death) throw new ArgumentException("Nacimiento posterior a fallecimiento.");
@@ -151,6 +150,7 @@ public async Task<List<MemoryResponseDTO>> GetMemoriesByDeceasedIdAsync(int dece
         var dto = new DeceasedResponseDTO
         {
             Id = model.Id,
+            Dni = model.Dni, 
             Name = model.Name,
             Epitaph = model.Epitaph,
             Biography = model.Biography,
@@ -170,60 +170,54 @@ public async Task<List<MemoryResponseDTO>> GetMemoriesByDeceasedIdAsync(int dece
         return dto;
     }
 
-private MemoryResponseDTO MapMemoryToDTO(Memory mem)
-{
-    string typeString;
-    switch (mem.Type)
+    private MemoryResponseDTO MapMemoryToDTO(Memory mem)
     {
-        case 1:
-            typeString = "Condolence";
-            break;
-        case 2:
-            typeString = "Photo";
-            break;
-        case 3:
-            typeString = "Anecdote";
-            break;
-        default:
-            typeString = "Unknown";
-            break;
+    
+        string typeString;
+        switch (mem.Type)
+        {
+            case 1:
+                typeString = "Condolence";
+                break;
+            case 2:
+                typeString = "Photo";
+                break;
+            case 3:
+                typeString = "Anecdote";
+                break;
+            default:
+                typeString = "Unknown";
+                break;
+        }
+
+        string statusString;
+        switch (mem.Status)
+        {
+            case 0:
+                statusString = "Pending";
+                break;
+            case 1:
+                statusString = "Approved";
+                break;
+            case 2:
+                statusString = "Rejected";
+                break;
+            default:
+                statusString = "Unknown";
+                break;
+        }
+
+        return new MemoryResponseDTO
+        {
+            Id = mem.Id,
+            CreatedDate = mem.CreatedDate,
+            Type = typeString,
+            Status = statusString,
+            TextContent = mem.TextContent,
+            MediaURL = mem.MediaURL,
+            AuthorRelation = mem.AuthorRelation,
+            UserId = mem.UserId,
+            DeceasedId = mem.DeceasedId
+        };
     }
-
-    string statusString;
-    switch (mem.Status)
-    {
-        case 0:
-            statusString = "Pending";
-            break;
-        case 1:
-            statusString = "Approved";
-            break;
-        case 2:
-            statusString = "Rejected";
-            break;
-        default:
-            statusString = "Unknown";
-            break;
-    }
-
-    return new MemoryResponseDTO
-    {
-        Id = mem.Id,
-        CreatedDate = mem.CreatedDate,
-        Type = typeString,
-        Status = statusString,
-        TextContent = mem.TextContent,
-        MediaURL = mem.MediaURL,
-        AuthorRelation = mem.AuthorRelation,
-        UserId = mem.UserId,
-        DeceasedId = mem.DeceasedId
-    };
-}
-
-
-
-
-
-
-
 }

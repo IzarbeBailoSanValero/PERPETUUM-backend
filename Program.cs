@@ -2,7 +2,7 @@
 
 /*program.cs se encarga de: punto de entrada de la api + iniciar + conectar + inyectar + arrancar*/
 using PERPETUUM.Repositories; //para añadir a adscoped
-//using PERPETUUM.Services; //para añadir a addscoped using System;
+using PERPETUUM.Services; //para añadir a addscoped using System;
 using MySqlConnector;
 using Serilog;
 
@@ -32,6 +32,8 @@ builder.Services.AddControllers();
 
 //inyección de dependencias
 //deceased 
+builder.Services.AddScoped<IDeceasedRepository, DeceasedRepository>();
+builder.Services.AddScoped<IDeceasedService, DeceasedService>();
 //FuneralHome 
 //MemorialGuardian 
 //Memory 
