@@ -173,7 +173,7 @@ namespace PERPETUUM.Controllers
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error interno al procesar delete deceased en controller");
+                _logger.LogError(ex, "Error interno al procesar delete deceased en controller"); 
                 return StatusCode(500, "Error interno al procesar petición");
             }
         }
