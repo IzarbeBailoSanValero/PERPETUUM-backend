@@ -16,4 +16,3 @@ public class MemoryResponseDTO
     public int DeceasedId { get; set; }
 }
 
-private MemoryResponseDTO MapMemoryToDTO

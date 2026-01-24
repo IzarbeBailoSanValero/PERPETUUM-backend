@@ -19,44 +19,127 @@ public class DeceasedService : IDeceasedService
 
 
 
-    public Task<int> CreateDeceasedAsync(DeceasedCreateDTO createDTO)
+    public async Task<List<DeceasedResponseDTO>> GetAllDeceasedAsync()
     {
-        throw new NotImplementedException();
-    }
+       _logger.LogInformation("Service: Obteniendo todos los difuntos");
+        var models = await _repository.GetAllAsync();
+        var dtos = new List<DeceasedResponseDTO>();
 
-    public Task<bool> DeleteDeceasedAsync(int id)
-    {
-        throw new NotImplementedException();
-    }
-
-    public Task<List<DeceasedResponseDTO>> GetAllDeceasedAsync()
-    {
-        throw new NotImplementedException();
-    }
-
-    public Task<DeceasedResponseDTO?> GetDeceasedProfileAsync(int id)
-    {
-        throw new NotImplementedException();
-    }
-
-    public Task<List<MemoryResponseDTO>> GetMemoriesByDeceasedIdAsync(int deceasedId)
-    {
-        throw new NotImplementedException();
-    }
-
-    public Task<List<DeceasedResponseDTO>> SearchDeceasedAsync(DeceasedSearchDTO searchDTO)
-    {
-        throw new NotImplementedException();
-    }
-
-    public Task<bool> UpdateDeceasedAsync(DeceasedUpdateDTO updateDTO)
-    {
-        throw new NotImplementedException();
+        foreach (var m in models)
+        {
+            dtos.Add(MapModelToDTO(m, includeMemories: false)); //se puede poner así, es lo mismo que (m,false) pero se lee mejor, lo dejo así
+        }
+        return dtos;
     }
 
 
 
-    //- - - MÉTODOS PRIVADOS - - - (Idea de chatgpt, me ha gustado, la cojo,  todo más limpio)
+    public async Task<DeceasedResponseDTO?> GetDeceasedProfileAsync(int id)
+    {
+       _logger.LogInformation("Service: Obteniendo difunto por id");
+        var model = await _repository.GetByIdAsync(id);
+
+        if (model == null) return null;
+
+        return MapModelToDTO(model, includeMemories: true);
+    }
+
+
+
+    public async Task<int> CreateDeceasedAsync(DeceasedCreateDTO dto)
+    {
+        ValidateDates(dto.BirthDate, dto.DeathDate);
+
+        var newDeceased = new Deceased
+        {
+            FuneralHomeId = dto.FuneralHomeId,
+            GuardianId = dto.GuardianId,
+            StaffId = dto.StaffId,
+            Name = dto.Name,
+            Epitaph = dto.Epitaph,
+            Biography = dto.Biography,
+            PhotoURL = dto.PhotoURL,
+            BirthDate = dto.BirthDate,
+            DeathDate = dto.DeathDate
+        };
+
+        int newDeceasedId =  await _repository.AddAsync(newDeceased);
+         _logger.LogInformation($"difunto añadido con éxito. El id del nuevo difunto es {newDeceasedId}");
+
+        return newDeceasedId;
+    }
+
+    public async Task<bool> UpdateDeceasedAsync(DeceasedUpdateDTO dto)
+    {
+        var existing = await _repository.GetByIdAsync(dto.Id);
+        if (existing == null) return false;
+
+        ValidateDates(dto.BirthDate, dto.DeathDate);
+
+        var updatedDeceased = new Deceased
+        {
+            Id = dto.Id,
+            FuneralHomeId = dto.FuneralHomeId,
+            GuardianId = dto.GuardianId,
+            StaffId = dto.StaffId,
+            Name = dto.Name,
+            Epitaph = dto.Epitaph,
+            Biography = dto.Biography,
+            PhotoURL = dto.PhotoURL,
+            BirthDate = dto.BirthDate,
+            DeathDate = dto.DeathDate
+        };
+
+        bool hasBeenUpdated = await _repository.UpdateAsync(updatedDeceased);
+        return hasBeenUpdated;
+    }
+
+
+   public async Task<bool> DeleteDeceasedAsync(int id)
+    {
+        var existing = await _repository.GetByIdAsync(id);
+        if (existing == null) return false;
+
+        bool hasBeenDeleted =await _repository.DeleteAsync(id);
+        return hasBeenDeleted;
+    }
+
+
+   
+public async Task<List<DeceasedResponseDTO>> SearchDeceasedAsync(DeceasedSearchDTO searchDTO)
+    {
+        if (!string.IsNullOrEmpty(searchDTO.Name)) searchDTO.Name = searchDTO.Name.Trim(); //quita espacios delante y detrás par aenviar bine el dto
+
+        var models = await _repository.SearchAsync(searchDTO);
+        var dtos = new List<DeceasedResponseDTO>();
+
+        foreach (var m in models)
+        {
+            dtos.Add(MapModelToDTO(m, includeMemories: false));
+        }
+        return dtos;
+    }
+
+public async Task<List<MemoryResponseDTO>> GetMemoriesByDeceasedIdAsync(int deceasedId)
+    {
+        var deceased = await _repository.GetByIdAsync(deceasedId);
+        if (deceased == null)
+        {
+            throw new ArgumentException($"El difunto con ID {deceasedId} no existe.");
+        }
+
+        var memories = await _repository.GetMemoriesByDeceasedIdAsync(deceasedId);
+        var memoryDTOs = new List<MemoryResponseDTO>();
+
+        foreach (var mem in memories)
+        {
+            memoryDTOs.Add(MapMemoryToDTO(mem));
+        }
+        return memoryDTOs;
+    }
+
+
+    //- - - MÉTODOS PRIVADOS - - - (Idea de chatgpt, me ha gustado, los cojo con su estructura, muy buena,  todo más limpio)
     private void ValidateDates(DateTime birth, DateTime death)
     {
         if (birth > death) throw new ArgumentException("Nacimiento posterior a fallecimiento.");
