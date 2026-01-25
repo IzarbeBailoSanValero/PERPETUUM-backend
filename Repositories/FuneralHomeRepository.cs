@@ -137,7 +137,6 @@ public class FuneralHomeRepository : IFuneralHomeRepository
                     command.Parameters.AddWithValue("@Address", funeralHome.Address);
                     command.Parameters.AddWithValue("@PhoneNumber", funeralHome.PhoneNumber);
 
-                    await command.ExecuteNonQueryAsync();
 
                     var result = await command.ExecuteScalarAsync();
                     newId = result is null ? 0 : Convert.ToInt32(result);
