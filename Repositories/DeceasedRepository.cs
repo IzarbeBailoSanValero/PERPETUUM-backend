@@ -37,6 +37,7 @@ public class DeceasedRepository : IDeceasedRepository
                     {
                         while (await reader.ReadAsync())
                         {
+                            //aquí hago el mapeo dentro, más limpio en un función aparte como en staff, dejo las dos maneras.
                             deceasedList.Add(new Deceased
                             {
                                 Id = reader.GetInt32("Id"),
