@@ -12,6 +12,6 @@ public interface IDeceasedRepository
     Task<bool> DeleteAsync(int id);
     Task <List<Memory>> GetMemoriesByDeceasedIdAsync (int deceased);
     Task <List<Deceased>> SearchAsync(DeceasedSearchDTO searchDTO);
-    Task <bool> ExistsByDniAsync(string dni);
+    Task<bool> ExistsByDniAsync(string dni, int? excludeId = null);
 
 }

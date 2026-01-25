@@ -35,6 +35,8 @@ builder.Services.AddControllers();
 builder.Services.AddScoped<IDeceasedRepository, DeceasedRepository>();
 builder.Services.AddScoped<IDeceasedService, DeceasedService>();
 //FuneralHome 
+builder.Services.AddScoped<IFuneralHomeRepository, FuneralHomeRepository>();
+builder.Services.AddScoped<IFuneralHomeService, FuneralHomeService>();
 //MemorialGuardian 
 //Memory 
 //Staff 

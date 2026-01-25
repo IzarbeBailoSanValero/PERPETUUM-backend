@@ -69,33 +69,43 @@ public class DeceasedService : IDeceasedService
         return newDeceasedId;
     }
 
-    public async Task<bool> UpdateDeceasedAsync(DeceasedUpdateDTO dto)
+public async Task<bool> UpdateDeceasedAsync(DeceasedUpdateDTO dto)
+{
+    var existing = await _repository.GetByIdAsync(dto.Id);
+    if (existing == null) return false;
+
+    ValidateDates(dto.BirthDate, dto.DeathDate);
+
+   
+    if (existing.Dni != dto.Dni)
     {
-        var existing = await _repository.GetByIdAsync(dto.Id);
-        if (existing == null) return false;
-
-        ValidateDates(dto.BirthDate, dto.DeathDate);
-
      
-
-        var updatedDeceased = new Deceased
+        bool exists = await _repository.ExistsByDniAsync(dto.Dni, excludeId: dto.Id);
+        
+        if (exists)
         {
-            Id = dto.Id,
-            FuneralHomeId = dto.FuneralHomeId,
-            GuardianId = dto.GuardianId,
-            StaffId = dto.StaffId,
-            Dni = dto.Dni, 
-            Name = dto.Name,
-            Epitaph = dto.Epitaph,
-            Biography = dto.Biography,
-            PhotoURL = dto.PhotoURL,
-            BirthDate = dto.BirthDate,
-            DeathDate = dto.DeathDate
-        };
-
-        bool hasBeenUpdated = await _repository.UpdateAsync(updatedDeceased);
-        return hasBeenUpdated;
+            throw new ArgumentException($"El DNI {dto.Dni} ya está en uso por otro difunto.");
+        }
     }
+    
+    var updatedDeceased = new Deceased
+    {
+        Id = dto.Id,
+        FuneralHomeId = dto.FuneralHomeId,
+        GuardianId = dto.GuardianId,
+        StaffId = dto.StaffId,
+        Dni = dto.Dni, // Asignamos el nuevo DNI
+        Name = dto.Name,
+        Epitaph = dto.Epitaph,
+        Biography = dto.Biography,
+        PhotoURL = dto.PhotoURL,
+        BirthDate = dto.BirthDate,
+        DeathDate = dto.DeathDate
+    };
+
+    bool hasBeenUpdated = await _repository.UpdateAsync(updatedDeceased);
+    return hasBeenUpdated;
+}
 
     public async Task<bool> DeleteDeceasedAsync(int id)
     {

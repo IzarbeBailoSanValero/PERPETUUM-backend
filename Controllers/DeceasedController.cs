@@ -59,6 +59,7 @@ namespace PERPETUUM.Controllers
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error interno al procesar get deceased en controller");
+                //esta versión de devolución de error tiene un mensaje plano, e smejor la de funeral home porque e sun objeto json. esto permite mejor gestinon para el front. lo dejo para trner las dos versiones
                 return StatusCode(500, "Error interno al procesar petición");
             }
         }

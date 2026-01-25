@@ -28,7 +28,7 @@ public class DeceasedRepository : IDeceasedRepository
             using (var connection = new MySqlConnection(_connectionString))
             {
                 await connection.OpenAsync();
-                
+
                 string query = "SELECT Id, FuneralHomeId, GuardianId, StaffId, Dni, Name, Epitaph, Biography, PhotoURL, BirthDate, DeathDate FROM Deceased";
 
                 using (var command = new MySqlCommand(query, connection))
@@ -70,9 +70,11 @@ public class DeceasedRepository : IDeceasedRepository
         }
     }
 
+
+
     public async Task<Deceased?> GetByIdAsync(int id)
     {
-        _logger.LogInformation("iniciando getByIdAsync en deceased");
+        _logger.LogInformation("Iniciando GetByIdAsync en Deceased");
         Deceased? deceased = null;
 
         try
@@ -82,9 +84,14 @@ public class DeceasedRepository : IDeceasedRepository
                 await connection.OpenAsync();
 
                 string query = @"
-                SELECT Id, FuneralHomeId, GuardianId, StaffId, Dni, Name, Epitaph, Biography, PhotoURL, BirthDate, DeathDate FROM Deceased WHERE Id = @Id;
-                SELECT Id, CreatedDate, Type, Status, TextContent, MediaURL, AuthorRelation, UserId, DeceasedId FROM Memory WHERE DeceasedId = @Id;
-                ";
+                SELECT Id, FuneralHomeId, GuardianId, StaffId, Dni, Name, Epitaph, Biography, PhotoURL, BirthDate, DeathDate 
+                FROM Deceased 
+                WHERE Id = @Id;
+
+                SELECT Id, CreatedDate, Type, Status, TextContent, MediaURL, AuthorRelation, UserId, DeceasedId 
+                FROM Memory 
+                WHERE DeceasedId = @Id;
+            ";
 
                 using (var command = new MySqlCommand(query, connection))
                 {
@@ -92,56 +99,46 @@ public class DeceasedRepository : IDeceasedRepository
 
                     using (var reader = await command.ExecuteReaderAsync())
                     {
-                        if (await reader.ReadAsync())
-                        {
-                            deceased = new Deceased
-                            {
-                                Id = reader.GetInt32("Id"),
-                                FuneralHomeId = reader.GetInt32("FuneralHomeId"),
-                                GuardianId = reader.GetInt32("GuardianId"),
-                                StaffId = reader.GetInt32("StaffId"),
-                                Dni = reader.GetString("Dni"),
-                                Name = reader.GetString("Name"),
-                                Epitaph = reader.GetString("Epitaph"),
-                                Biography = reader.GetString("Biography"),
-                                PhotoURL = reader.GetString("PhotoURL"),
-                                BirthDate = reader.GetDateTime("BirthDate"),
-                                DeathDate = reader.GetDateTime("DeathDate"),
-                                Memories = new List<Memory>()
-                            };
-                        }
-
-                        if (await reader.NextResultAsync()) 
-                        {
-                            var memories = new List<Memory>();
-
-                            int textContentOrdinal = reader.GetOrdinal("TextContent");
-                            int mediaUrlOrdinal = reader.GetOrdinal("MediaURL");
-                            int authorRelationOrdinal = reader.GetOrdinal("AuthorRelation");
-
-                            while (await reader.ReadAsync())
-                            {
-                                memories.Add(new Memory
-                                {
-                                    Id = reader.GetInt32("Id"),
-                                    CreatedDate = reader.GetDateTime("CreatedDate"),
-                                    Type = reader.GetInt32("Type"),
-                                    Status = reader.GetInt32("Status"),
-                                    TextContent = reader.IsDBNull(textContentOrdinal) ? null : reader.GetString(textContentOrdinal),
-                                    MediaURL = reader.IsDBNull(mediaUrlOrdinal) ? null : reader.GetString(mediaUrlOrdinal),
-                                    AuthorRelation = reader.IsDBNull(authorRelationOrdinal) ? null : reader.GetString(authorRelationOrdinal),
-                                    UserId = reader.GetInt32("UserId"),
-                                    DeceasedId = reader.GetInt32("DeceasedId")
-                                });
-                            }
-
-                            deceased.Memories = memories;
-                        }
-
-                        if (deceased == null)
+                      //si no hay registro para leer devuelve nulo --> para lanzar luego 404, sino, se pone a leer
+                        if (!await reader.ReadAsync())
                         {
                             _logger.LogWarning($"Deceased con id:{id} NO encontrado");
-                            return null;
+                            return null; 
+                        }
+
+                        deceased = new Deceased
+                        {
+                            Id = reader.GetInt32("Id"),
+                            FuneralHomeId = reader.GetInt32("FuneralHomeId"),
+                            GuardianId = reader.GetInt32("GuardianId"),
+                            StaffId = reader.GetInt32("StaffId"),
+                            Dni = reader.GetString("Dni"),
+                            Name = reader.GetString("Name"),
+                            Epitaph = reader.GetString("Epitaph"),
+                            Biography = reader.GetString("Biography"),
+                            PhotoURL = reader.GetString("PhotoURL"),
+                            BirthDate = reader.GetDateTime("BirthDate"),
+                            DeathDate = reader.GetDateTime("DeathDate"),
+                            Memories = new List<Memory>()
+                        };
+
+                       //cargamos memorias
+                        await reader.NextResultAsync();
+
+                        while (await reader.ReadAsync())
+                        {
+                            deceased.Memories.Add(new Memory
+                            {
+                                Id = reader.GetInt32("Id"),
+                                CreatedDate = reader.GetDateTime("CreatedDate"),
+                                Type = reader.GetInt32("Type"),
+                                Status = reader.GetInt32("Status"),
+                                TextContent = reader.IsDBNull(reader.GetOrdinal("TextContent")) ? null : reader.GetString("TextContent"),
+                                MediaURL = reader.IsDBNull(reader.GetOrdinal("MediaURL")) ? null : reader.GetString("MediaURL"),
+                                AuthorRelation = reader.IsDBNull(reader.GetOrdinal("AuthorRelation")) ? null : reader.GetString("AuthorRelation"),
+                                UserId = reader.GetInt32("UserId"),
+                                DeceasedId = reader.GetInt32("DeceasedId")
+                            });
                         }
                     }
                 }
@@ -157,6 +154,7 @@ public class DeceasedRepository : IDeceasedRepository
             _logger.LogError(ex, $"Error general en GetByIdAsync: {ex.Message}");
             throw;
         }
+
         return deceased;
     }
 
@@ -190,7 +188,7 @@ public class DeceasedRepository : IDeceasedRepository
                     command.Parameters.AddWithValue("@PhotoURL", deceased.PhotoURL);
                     command.Parameters.AddWithValue("@BirthDate", deceased.BirthDate);
                     command.Parameters.AddWithValue("@DeathDate", deceased.DeathDate);
-                    
+
                     var result = await command.ExecuteScalarAsync();
                     newId = result is null ? 0 : Convert.ToInt32(result);
                 }
@@ -432,19 +430,33 @@ public class DeceasedRepository : IDeceasedRepository
         }
     }
 
-    public async Task<bool> ExistsByDniAsync(string dni)
+    public async Task<bool> ExistsByDniAsync(string dni, int? excludeId = null)
+{
+    using (var connection = new MySqlConnection(_connectionString))
     {
-        using (var connection = new MySqlConnection(_connectionString))
-        {
-            await connection.OpenAsync();
-            string query = "SELECT COUNT(1) FROM Deceased WHERE Dni = @Dni;";
+        await connection.OpenAsync();
+        
+        // Construcción dinámica de la query
+        var sqlBuilder = new StringBuilder("SELECT COUNT(1) FROM Deceased WHERE Dni = @Dni");
 
-            using (var command = new MySqlCommand(query, connection))
+        // Si es Update (tenemos ID), excluimos ese ID de la búsqueda
+        if (excludeId.HasValue)
+        {
+            sqlBuilder.Append(" AND Id != @ExcludeId");
+        }
+
+        using (var command = new MySqlCommand(sqlBuilder.ToString(), connection))
+        {
+            command.Parameters.AddWithValue("@Dni", dni);
+            
+            if (excludeId.HasValue)
             {
-                command.Parameters.AddWithValue("@Dni", dni);
-                int count = Convert.ToInt32(await command.ExecuteScalarAsync()); 
-                return count > 0;
+                command.Parameters.AddWithValue("@ExcludeId", excludeId.Value);
             }
+
+            int count = Convert.ToInt32(await command.ExecuteScalarAsync());
+            return count > 0;
         }
     }
+}
 }
