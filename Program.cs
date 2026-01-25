@@ -30,7 +30,7 @@ builder.Services.AddControllers();
 
 
 
-//inyección de dependencias
+/////////////////inyección de dependencias///////////////////////
 //deceased 
 builder.Services.AddScoped<IDeceasedRepository, DeceasedRepository>();
 builder.Services.AddScoped<IDeceasedService, DeceasedService>();
@@ -40,6 +40,8 @@ builder.Services.AddScoped<IFuneralHomeService, FuneralHomeService>();
 //MemorialGuardian 
 //Memory 
 //Staff 
+builder.Services.AddScoped<IStaffRepository, StaffRepository>();
+builder.Services.AddScoped<IStaffService, StaffService>();
 //User
 
 
