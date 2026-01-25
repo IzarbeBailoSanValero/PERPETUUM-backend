@@ -172,16 +172,17 @@ public class StaffRepository : IStaffRepository
     }
 
  
-    public async Task<bool> UpdateAsync(Staff staff)
+   public async Task<bool> UpdateAsync(Staff staff)
     {
         try
         {
             using (var connection = new MySqlConnection(_connectionString))
             {
                 await connection.OpenAsync();
+                
+                // CAMBIO: Ya no actualizamos el FuneralHomeId
                 string query = @"
                     UPDATE Staff SET 
-                        FuneralHomeId = @FuneralHomeId,
                         Name = @Name, 
                         Email = @Email, 
                         DNI = @DNI
@@ -190,7 +191,7 @@ public class StaffRepository : IStaffRepository
                 using (var command = new MySqlCommand(query, connection))
                 {
                     command.Parameters.AddWithValue("@Id", staff.Id);
-                    command.Parameters.AddWithValue("@FuneralHomeId", staff.FuneralHomeId);
+                    // command.Parameters.AddWithValue("@FuneralHomeId", staff.FuneralHomeId); // <-- ELIMINADO
                     command.Parameters.AddWithValue("@Name", staff.Name);
                     command.Parameters.AddWithValue("@Email", staff.Email);
                     command.Parameters.AddWithValue("@DNI", staff.DNI);
@@ -206,7 +207,6 @@ public class StaffRepository : IStaffRepository
             throw;
         }
     }
-
     
     public async Task<bool> DeleteAsync(int id)
     {
