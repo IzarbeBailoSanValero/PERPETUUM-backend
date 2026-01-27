@@ -132,8 +132,8 @@ public class DeceasedRepository : IDeceasedRepository
                             {
                                 Id = reader.GetInt32("Id"),
                                 CreatedDate = reader.GetDateTime("CreatedDate"),
-                                Type = reader.GetInt32("Type"),
-                                Status = reader.GetInt32("Status"),
+                                Type = (MemoryType)reader.GetInt32("Type"),
+                                Status =(MemoryStatus) reader.GetInt32("Status"),
                                 TextContent = reader.IsDBNull(reader.GetOrdinal("TextContent")) ? null : reader.GetString("TextContent"),
                                 MediaURL = reader.IsDBNull(reader.GetOrdinal("MediaURL")) ? null : reader.GetString("MediaURL"),
                                 AuthorRelation = reader.IsDBNull(reader.GetOrdinal("AuthorRelation")) ? null : reader.GetString("AuthorRelation"),
@@ -295,64 +295,6 @@ public class DeceasedRepository : IDeceasedRepository
         return hasBeenDeleted;
     }
 
-    public async Task<List<Memory>> GetMemoriesByDeceasedIdAsync(int deceasedId)
-    {
-        _logger.LogInformation("Iniciando GetMemoriesByDeceasedIdAsync");
-
-        var memoryList = new List<Memory>();
-
-        try
-        {
-            using (var connection = new MySqlConnection(_connectionString))
-            {
-                await connection.OpenAsync();
-
-                string query = @"
-                     SELECT Id, CreatedDate, Type, Status, TextContent, MediaURL, AuthorRelation, UserId, DeceasedId 
-                     FROM Memory 
-                     WHERE DeceasedId = @DeceasedId 
-                     ORDER BY CreatedDate DESC;";
-
-                using (var command = new MySqlCommand(query, connection))
-                {
-                    command.Parameters.AddWithValue("@DeceasedId", deceasedId);
-
-                    using (var reader = await command.ExecuteReaderAsync())
-                    {
-                        while (await reader.ReadAsync())
-                        {
-                            memoryList.Add(new Memory
-                            {
-                                Id = reader.GetInt32("Id"),
-                                CreatedDate = reader.GetDateTime("CreatedDate"),
-                                Type = reader.GetInt32("Type"),
-                                Status = reader.GetInt32("Status"),
-                                UserId = reader.GetInt32("UserId"),
-                                DeceasedId = reader.GetInt32("DeceasedId"),
-
-                                TextContent = reader.IsDBNull(reader.GetOrdinal("TextContent")) ? null : reader.GetString("TextContent"),
-                                MediaURL = reader.IsDBNull(reader.GetOrdinal("MediaURL")) ? null : reader.GetString("MediaURL"),
-                                AuthorRelation = reader.IsDBNull(reader.GetOrdinal("AuthorRelation")) ? null : reader.GetString("AuthorRelation")
-                            });
-                        }
-                    }
-                }
-            }
-
-            _logger.LogInformation("exito en la recuperación de lista de memories by deceased");
-            return memoryList;
-        }
-        catch (MySqlException ex)
-        {
-            _logger.LogError(ex, $"error de MYSQL en petición a BBDD GetMemoriesByDeceasedIdAsync. Error: {ex.Message}");
-            throw;
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, $"error en petición a BBDD GetMemoriesByDeceasedIdAsync. Error: {ex.Message}");
-            throw;
-        }
-    }
 
     public async Task<List<Deceased>> SearchAsync(DeceasedSearchDTO searchDTO)
     {

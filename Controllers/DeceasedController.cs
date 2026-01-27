@@ -181,27 +181,5 @@ namespace PERPETUUM.Controllers
         }
 
     
-        [HttpGet("memories-by-deceased/{deceasedId}")]
-        public async Task<ActionResult<List<MemoryResponseDTO>>> GetMemoriesByDeceased(int deceasedId)
-        {
-            try
-            {
-                List<MemoryResponseDTO> memoryList = await _deceasedService.GetMemoriesByDeceasedIdAsync(deceasedId);
-
-                _logger.LogInformation($"Éxito en GetMemoriesByDeceased para el difunto: {deceasedId}");
-
-                return Ok(memoryList);
-            }
-            catch (ArgumentException ex)
-            {
-                _logger.LogWarning(ex, "No encontrado difunto al pedir memorias");
-                return NotFound(ex.Message);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Error interno al procesar get memories en controller");
-                return StatusCode(500, "Error interno al procesar petición");
-            }
-        }
     }
 }

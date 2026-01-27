@@ -62,7 +62,9 @@ builder.Services.AddScoped<IFuneralHomeService, FuneralHomeService>();
 
 //MemorialGuardian 
 
-//Memory 
+//Memory
+builder.Services.AddScoped<IMemoryRepository, MemoryRepository>();
+//builder.Services.AddScoped<IMemoryService, MemoryService>();
 
 //Staff 
 builder.Services.AddScoped<IStaffRepository, StaffRepository>();

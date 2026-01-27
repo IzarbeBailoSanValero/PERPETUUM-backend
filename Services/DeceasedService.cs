@@ -9,6 +9,8 @@ public class DeceasedService : IDeceasedService
 {
     private readonly IDeceasedRepository _repository;
     private readonly ILogger<DeceasedService> _logger;
+    private readonly IMemoryRepository _memoryRepository;
+    
 
     public DeceasedService(IDeceasedRepository repository, ILogger<DeceasedService> logger)
     {
@@ -29,15 +31,25 @@ public class DeceasedService : IDeceasedService
         return dtos;
     }
 
-    public async Task<DeceasedResponseDTO?> GetDeceasedProfileAsync(int id)
-    {
-        _logger.LogInformation("Service: Obteniendo difunto por id");
-        var model = await _repository.GetByIdAsync(id);
+   public async Task<DeceasedResponseDTO?> GetDeceasedProfileAsync(int id) //solo trae con memorias aprobadas
+{
+    _logger.LogInformation("Service: Obteniendo perfil público del difunto {Id}", id);
 
-        if (model == null) return null;
 
-        return MapModelToDTO(model, includeMemories: true);
-    }
+    var deceasedModel = await _repository.GetByIdAsync(id);
+
+    if (deceasedModel == null) return null;
+
+    //pongo include a false para que no traiga todas las memorias, luego pillo yo las aprobadas con el metodo de memorias aprobadas por difunto
+    var dto = MapModelToDTO(deceasedModel, includeMemories: false);
+
+    
+    var approvedMemories = await _memoryRepository.GetApprovedByDeceasedIdAsync(id);
+
+    dto.Memories = approvedMemories.Select(m => MapMemoryToDTO(m)).ToList();
+
+    return dto;
+}
 
     public async Task<int> CreateDeceasedAsync(DeceasedCreateDTO dto)
     {
@@ -130,23 +142,7 @@ public async Task<bool> UpdateDeceasedAsync(DeceasedUpdateDTO dto)
         return dtos;
     }
 
-    public async Task<List<MemoryResponseDTO>> GetMemoriesByDeceasedIdAsync(int deceasedId)
-    {
-        var deceased = await _repository.GetByIdAsync(deceasedId);
-        if (deceased == null)
-        {
-            throw new ArgumentException($"El difunto con ID {deceasedId} no existe.");
-        }
-
-        var memories = await _repository.GetMemoriesByDeceasedIdAsync(deceasedId);
-        var memoryDTOs = new List<MemoryResponseDTO>();
-
-        foreach (var mem in memories)
-        {
-            memoryDTOs.Add(MapMemoryToDTO(mem));
-        }
-        return memoryDTOs;
-    }
+   
 
     //- - - MÉTODOS PRIVADOS - - - 
     private void ValidateDates(DateTime birth, DateTime death)
@@ -156,78 +152,48 @@ public async Task<bool> UpdateDeceasedAsync(DeceasedUpdateDTO dto)
     }
 
     private DeceasedResponseDTO MapModelToDTO(Deceased model, bool includeMemories)
+{
+    var dto = new DeceasedResponseDTO
     {
-        var dto = new DeceasedResponseDTO
-        {
-            Id = model.Id,
-            Dni = model.Dni, 
-            Name = model.Name,
-            Epitaph = model.Epitaph,
-            Biography = model.Biography,
-            PhotoURL = model.PhotoURL,
-            BirthDate = model.BirthDate,
-            DeathDate = model.DeathDate
-        };
+        Id = model.Id,
+        Dni = model.Dni,
+        Name = model.Name,
+        Epitaph = model.Epitaph,
+        Biography = model.Biography,
+        PhotoURL = model.PhotoURL,
+        BirthDate = model.BirthDate,
+        DeathDate = model.DeathDate,
+        Memories = new List<MemoryResponseDTO>() // Lista vacía por defecto
+    };
 
-        if (includeMemories && model.Memories != null)
-        {
-            dto.Memories = new List<MemoryResponseDTO>();
-            foreach (var mem in model.Memories)
-            {
-                dto.Memories.Add(MapMemoryToDTO(mem));
-            }
-        }
-        return dto;
-    }
-
-    private MemoryResponseDTO MapMemoryToDTO(Memory mem)
-    {
     
-        string typeString;
-        switch (mem.Type)
+    // En GetDeceasedProfileAsync le pasamos 'false para hacerlo nosotros manualmente después
+    if (includeMemories && model.Memories != null)
+    {
+        foreach (var mem in model.Memories)
         {
-            case 1:
-                typeString = "Condolence";
-                break;
-            case 2:
-                typeString = "Photo";
-                break;
-            case 3:
-                typeString = "Anecdote";
-                break;
-            default:
-                typeString = "Unknown";
-                break;
+            dto.Memories.Add(MapMemoryToDTO(mem));
         }
-
-        string statusString;
-        switch (mem.Status)
-        {
-            case 0:
-                statusString = "Pending";
-                break;
-            case 1:
-                statusString = "Approved";
-                break;
-            case 2:
-                statusString = "Rejected";
-                break;
-            default:
-                statusString = "Unknown";
-                break;
-        }
-
-        return new MemoryResponseDTO
-        {
-            Id = mem.Id,
-            CreatedDate = mem.CreatedDate,
-            Type = typeString,
-            Status = statusString,
-            TextContent = mem.TextContent,
-            MediaURL = mem.MediaURL,
-            AuthorRelation = mem.AuthorRelation,
-            UserId = mem.UserId,
-            DeceasedId = mem.DeceasedId
-        };
     }
+    return dto;
+}
+
+   private MemoryResponseDTO MapMemoryToDTO(Memory mem)
+{
+    return new MemoryResponseDTO
+    {
+        Id = mem.Id,
+        CreatedDate = mem.CreatedDate,
+        
+        // con toString() para que sale la palabra del enum en vez del número : IA
+        Type = mem.Type.ToString(), 
+        Status = mem.Status.ToString(),
+        
+        TextContent = mem.TextContent,
+        MediaURL = mem.MediaURL,
+        AuthorRelation = mem.AuthorRelation,
+        UserId = mem.UserId,
+        DeceasedId = mem.DeceasedId
+    };
+}
 }
