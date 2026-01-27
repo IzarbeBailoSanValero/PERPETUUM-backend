@@ -1,6 +1,8 @@
 using Microsoft.AspNetCore.Mvc;
 using PERPETUUM.Services;
 using PERPETUUM.DTOs;
+using PERPETUUM.Models;
+using Microsoft.AspNetCore.Authorization;
 
 namespace PERPETUUM.Controllers;
 
@@ -58,8 +60,9 @@ public class StaffController : ControllerBase
         }
     }
 
-    
+//solo podrás postear trabajadores si eres admin. para ello primero te loggeas como admin, consigues el token. cuando haces la peticion post se pone el token de admin y deja. 
     [HttpPost]
+    [Authorize(Roles = Roles.Admin)]
     public async Task<ActionResult> Create([FromBody] StaffCreateDTO dto)
     {
         if (!ModelState.IsValid) return BadRequest(ModelState);

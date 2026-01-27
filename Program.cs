@@ -69,7 +69,10 @@ builder.Services.AddScoped<IStaffRepository, StaffRepository>();
 builder.Services.AddScoped<IStaffService, StaffService>();
 
 //User
+builder.Services.AddScoped<IUserRepository, UserRepository>();
 
+//Auth
+builder.Services.AddScoped<IAuthService, AuthService>();
 
 
 

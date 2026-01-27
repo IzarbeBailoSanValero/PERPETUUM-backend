@@ -8,5 +8,7 @@ public class Staff
     public string Email { get; set; }
     public string DNI { get; set; }
 
+    public string PasswordHash { get; set; }
+    public bool IsAdmin { get; set; }
     public List<Deceased> DeceasedInCharge { get; set; }
 }

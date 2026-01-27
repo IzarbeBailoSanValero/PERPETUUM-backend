@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Mvc;
 using PERPETUUM.Services;
 using PERPETUUM.DTOs;
+using Microsoft.AspNetCore.Authorization;
 
 namespace PERPETUUM.Controllers;
 

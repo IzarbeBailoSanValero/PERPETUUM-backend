@@ -18,4 +18,11 @@ public class StaffCreateDTO
     [Required(ErrorMessage = "El DNI es obligatorio")]
     [StringLength(9, ErrorMessage = "El DNI no puede superar los 9 caracteres")]
     public string DNI { get; set; }
+
+
+    [Required]
+    [StringLength(20, MinimumLength = 6)]
+    public string Password { get; set; } 
+
+    public bool IsAdmin { get; set; } = false; 
 }

@@ -125,52 +125,28 @@ public class StaffRepository : IStaffRepository
 
 
     public async Task<int> AddAsync(Staff staff)
+{
+    using (var connection = new MySqlConnection(_connectionString))
     {
-        int newId = 0;
-        try
-        {
-            using (var connection = new MySqlConnection(_connectionString))
-            {
-                await connection.OpenAsync();
-                
-                string query = @"
-                    INSERT INTO Staff (FuneralHomeId, Name, Email, DNI) 
-                    VALUES (@FuneralHomeId, @Name, @Email, @DNI);";
+        await connection.OpenAsync();
 
-                using (var command = new MySqlCommand(query, connection))
-                {
-                    command.Parameters.AddWithValue("@FuneralHomeId", staff.FuneralHomeId);
-                    command.Parameters.AddWithValue("@Name", staff.Name);
-                    command.Parameters.AddWithValue("@Email", staff.Email);
-                    command.Parameters.AddWithValue("@DNI", staff.DNI);
+        string query = @"INSERT INTO Staff (FuneralHomeId, Name, Email, DNI, PasswordHash, IsAdmin) 
+                         VALUES (@FuneralHomeId, @Name, @Email, @DNI, @PasswordHash, @IsAdmin);
+                         SELECT LAST_INSERT_ID();";
 
-                    await command.ExecuteNonQueryAsync();
-                    newId = Convert.ToInt32(command.LastInsertedId);
-                }
-            }
-        }
-        catch (MySqlException ex)
+        using (var command = new MySqlCommand(query, connection))
         {
-            if (ex.Number == 1452) // Foreign Key Fails --> nuevo numero de excepcion cuando hay un fallo en las fk, lo incorporo (IA)
-            {
-                _logger.LogError($"Error FK: La funeraria ID {staff.FuneralHomeId} no existe.");
-                throw new ArgumentException($"La funeraria con ID {staff.FuneralHomeId} no existe.");
-            }
-            if (ex.Number == 1062) // entrada duplicada
-            {
-                _logger.LogWarning($"Duplicado detectado en Staff: {ex.Message}");
-            }
-            _logger.LogError(ex, "Error MySQL en Add Staff");
-            throw;
+            command.Parameters.AddWithValue("@FuneralHomeId", staff.FuneralHomeId);
+            command.Parameters.AddWithValue("@Name", staff.Name);
+            command.Parameters.AddWithValue("@Email", staff.Email);
+            command.Parameters.AddWithValue("@DNI", staff.DNI);
+            command.Parameters.AddWithValue("@PasswordHash", staff.PasswordHash);
+            command.Parameters.AddWithValue("@IsAdmin", staff.IsAdmin);
+
+            return Convert.ToInt32(await command.ExecuteScalarAsync());
         }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Error general en Add Staff");
-            throw;
-        }
-        return newId;
     }
-
+}
  
    public async Task<bool> UpdateAsync(Staff staff)
     {

@@ -10,5 +10,6 @@ public class MemorialGuardian
     public string DNI { get; set; }
     public string Email { get; set; }
     public string PhoneNumber { get; set; }
+    public string PasswordHash { get; set; }
     public List<Deceased> ManagedMemorials { get; set; }
 }

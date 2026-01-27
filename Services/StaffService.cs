@@ -56,37 +56,34 @@ public class StaffService : IStaffService
     }
   
     public async Task<int> CreateAsync(StaffCreateDTO dto)
+{
+   
+    var fh = await _funeralHomeRepository.GetByIdAsync(dto.FuneralHomeId);
+    if (fh == null) throw new ArgumentException($"No existe la funeraria {dto.FuneralHomeId}");
+
+  
+    if (await _staffRepository.ExistsByEmailAsync(dto.Email))
+        throw new ArgumentException($"El email {dto.Email} ya está registrado.");
+
+    if (await _staffRepository.ExistsByDniAsync(dto.DNI))
+        throw new ArgumentException($"El DNI {dto.DNI} ya está registrado.");
+
+    
+    string passwordHash = BCrypt.Net.BCrypt.HashPassword(dto.Password);
+
+
+    var newStaff = new Staff
     {
-        //validaciones: existe funeraria + email unico + dni unico
-        var fh = await _funeralHomeRepository.GetByIdAsync(dto.FuneralHomeId);
-        if (fh == null)
-        {
-            throw new ArgumentException($"No existe la funeraria con ID {dto.FuneralHomeId}");
-        }
+        FuneralHomeId = dto.FuneralHomeId,
+        Name = dto.Name,
+        Email = dto.Email,
+        DNI = dto.DNI,
+        PasswordHash = passwordHash, 
+        IsAdmin = dto.IsAdmin        
+    };
 
-      
-        if (await _staffRepository.ExistsByEmailAsync(dto.Email))
-        {
-            throw new ArgumentException($"El email {dto.Email} ya está registrado.");
-        }
-
-       
-        if (await _staffRepository.ExistsByDniAsync(dto.DNI))
-        {
-            throw new ArgumentException($"El DNI {dto.DNI} ya está registrado.");
-        }
-
-        var newStaff = new Staff
-        {
-            FuneralHomeId = dto.FuneralHomeId,
-            Name = dto.Name,
-            Email = dto.Email,
-            DNI = dto.DNI
-        };
-
-        return await _staffRepository.AddAsync(newStaff);
-    }
-
+    return await _staffRepository.AddAsync(newStaff);
+}
     
    public async Task<bool> UpdateAsync(StaffUpdateDTO dto)
     {

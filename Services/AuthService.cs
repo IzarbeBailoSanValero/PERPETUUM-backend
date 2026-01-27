@@ -63,9 +63,7 @@ namespace PERPETUUM.Services
                         new Claim(ClaimTypes.NameIdentifier, Convert.ToString(userDtoOut.UserId)),
                         new Claim(ClaimTypes.Name, userDtoOut.UserName),
                         new Claim(ClaimTypes.Role, userDtoOut.Role),
-                        new Claim(ClaimTypes.Email, userDtoOut.Email),
-                        new Claim("myCustomClaim", "myCustomClaimValue"),
-                        // add other claims
+                        new Claim(ClaimTypes.Email, userDtoOut.Email)
                     }),
                 Expires = DateTime.UtcNow.AddDays(7), // AddMinutes(60)
                 SigningCredentials = new SigningCredentials(new SymmetricSecurityKey(key), SecurityAlgorithms.HmacSha256Signature)
