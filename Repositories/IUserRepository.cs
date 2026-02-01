@@ -5,9 +5,11 @@ namespace PERPETUUM.Repositories;
 
 public interface IUserRepository
 {
-    // ... tus métodos CRUD anteriores (GetById, etc.) ...
+    Task<User?> GetByEmailAsync(string email);
+    Task<int> CreateUserAsync(User user);
+    Task<User?> GetByIdAsync(int id);
+    Task<bool> UpdateAsync(User user);
+    Task<bool> DeleteAsync(int id);
+    //todo: implementar crud
 
-    // MÉTODOS PARA AUTH
-    UserDtoOut? GetUserFromCredentials(LoginDtoIn loginDto); // Devuelve null si falla
-    UserDtoOut AddUserFromCredentials(UserDtoIn userDto);
 }

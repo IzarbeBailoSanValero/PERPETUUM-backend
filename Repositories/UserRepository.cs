@@ -1,9 +1,15 @@
 using MySqlConnector;
 using PERPETUUM.DTOs;
 using PERPETUUM.Models;
-using PERPETUUM.Repositories;
-
+using System.Data;
+using Microsoft.Extensions.Logging;
 using BCrypt.Net;
+
+
+using MySqlConnector;
+using PERPETUUM.Models;
+
+
 
 namespace PERPETUUM.Repositories;
 
@@ -89,6 +95,50 @@ public class UserRepository : IUserRepository
         }
     }
     
+
+
+    public async Task<User?> GetByEmailAsync(string email)
+{
+    using var connection = new MySqlConnection(_connectionString);
+    await connection.OpenAsync();
+    string query = "SELECT * FROM `User` WHERE Email = @Email"; 
+    
+    using var command = new MySqlCommand(query, connection);
+    command.Parameters.AddWithValue("@Email", email);
+    
+    using var reader = await command.ExecuteReaderAsync();
+    if (await reader.ReadAsync())
+    {
+        return new User
+        {
+            Id = reader.GetInt32("Id"),
+            Name = reader.GetString("Name"),
+            Email = reader.GetString("Email"),
+            PasswordHash = reader.GetString("PasswordHash") 
+            
+        };
+    }
+    return null;
+}
+
+//TODO: QUITAR FUNCIÓN DE AÑADIR VIEJA
+public async Task<int> CreateUserAsync(User user)
+{
+    using var connection = new MySqlConnection(_connectionString);
+    await connection.OpenAsync();
+    
+    // Aquí YA NO hasheamos, asumimos que viene hasheada del servicio
+    string query = @"INSERT INTO `User` (Name, Email, PasswordHash, CreatedDate) 
+                     VALUES (@Name, @Email, @Pass, NOW());
+                     SELECT LAST_INSERT_ID();";
+
+    using var command = new MySqlCommand(query, connection);
+    command.Parameters.AddWithValue("@Name", user.Name);
+    command.Parameters.AddWithValue("@Email", user.Email);
+    command.Parameters.AddWithValue("@Pass", user.PasswordHash);
+
+    return Convert.ToInt32(await command.ExecuteScalarAsync());
+}
     // ... Resto de métodos (GetById, etc.) ...
     //TODO::::::::
 }

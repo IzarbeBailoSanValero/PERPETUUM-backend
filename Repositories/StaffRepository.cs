@@ -276,6 +276,33 @@ public class StaffRepository : IStaffRepository
         }
     }
 
+    public async Task<Staff?> GetByEmailAsync(string email)
+{
+    using var connection = new MySqlConnection(_connectionString);
+    await connection.OpenAsync();
+    
+    // Necesitamos el PasswordHash e IsAdmin para el Login
+    string query = "SELECT * FROM Staff WHERE Email = @Email"; 
+    
+    using var command = new MySqlCommand(query, connection);
+    command.Parameters.AddWithValue("@Email", email);
+    
+    using var reader = await command.ExecuteReaderAsync();
+    if (await reader.ReadAsync())
+    {
+        return new Staff //con passwordhash y isAdmin
+        { 
+            Id = reader.GetInt32("Id"),
+            Name = reader.GetString("Name"),
+            Email = reader.GetString("Email"),
+            PasswordHash = reader.GetString("PasswordHash"), 
+            IsAdmin = reader.GetBoolean("IsAdmin"),
+            FuneralHomeId = reader.GetInt32("FuneralHomeId")
+        };
+    }
+    return null;
+}
+
 
     private Staff MapReaderToModel(MySqlDataReader reader)
     {
