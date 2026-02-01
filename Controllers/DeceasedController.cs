@@ -40,7 +40,7 @@ namespace PERPETUUM.Controllers
         }
 
  
- //TODO: PETA CON 500 SI PONES UN ID QUE NO EXISTE
+
         [HttpGet("{deceasedId}")]
         public async Task<ActionResult<DeceasedResponseDTO>> GetDeceased(int deceasedId)
         {
@@ -158,7 +158,6 @@ namespace PERPETUUM.Controllers
             }
         }
 
-     //TODO: PETA CON 500 SI PONES UN ID QUE NO EXISTE
         [HttpDelete("{deceasedId}")]
         public async Task<IActionResult> DeleteDeceased(int deceasedId)
         {
