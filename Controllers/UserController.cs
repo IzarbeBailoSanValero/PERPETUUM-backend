@@ -58,8 +58,7 @@ public class UserController : ControllerBase
     }
 
     [HttpPut("{id}")]
-    //TODO: userupdatedto
-    public async Task<ActionResult> UpdateProfile(int id, [FromBody] userUpdateDto dto)
+    public async Task<ActionResult> UpdateProfile(int id, [FromBody] UserUpdateDto dto)
     {
         try
         {

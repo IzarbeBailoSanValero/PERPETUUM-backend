@@ -1,0 +1,8 @@
+using PERPETUUM.DTOs;
+
+namespace PERPETUUM.Services;
+public interface IMemorialGuardianService
+{
+    Task<int> CreateGuardianAsync(GuardianCreateDTO dto);
+    Task<GuardianResponseDTO?> GetGuardianByIdAsync(int id);
+}

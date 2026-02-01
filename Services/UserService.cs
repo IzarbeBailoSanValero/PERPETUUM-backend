@@ -32,7 +32,7 @@ public class UserService : IUserService
         };
     }
 
-    public async Task<bool> UpdateUserProfileAsync(int id, userUpdateDto dto) //no modifica contraseñas, eso si acaso implemento en auth
+    public async Task<bool> UpdateUserProfileAsync(int id, UserUpdateDto dto) //no modifica contraseñas, eso si acaso implemento en auth
     {
         
         var user = await _repository.GetByIdAsync(id);
@@ -53,4 +53,6 @@ public class UserService : IUserService
         _logger.LogWarning($"Usuario {id} dándose de baja.");
         return await _repository.DeleteAsync(id);
     }
+
+    
 }
