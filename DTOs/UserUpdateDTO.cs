@@ -2,7 +2,7 @@ using System.ComponentModel.DataAnnotations;
 
 namespace PERPETUUM.DTOs;
 
-public class userUpdateDto// Permite editar datos, pero NO la contraseña ni rol
+public class UserUpdateDto// Permite editar datos, pero NO la contraseña ni rol
 {
     [Required(ErrorMessage = "El nombre es obligatorio")]
     public string Name { get; set; } = string.Empty;
