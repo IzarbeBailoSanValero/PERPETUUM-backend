@@ -13,9 +13,9 @@ public class UserController : ControllerBase
 {
     private readonly IUserService _userService;
     private readonly IAuthService _authService; //lo llamo para comprobar si hay acceso al recurso
-    private readonly ILogger<DeceasedController> _logger;
+    private readonly ILogger<UserController> _logger;
 
-    public UserController(IUserService userService, IAuthService authService)
+    public UserController(IUserService userService, IAuthService authService, ILogger<UserController> logger)
     {
         _userService = userService;
         _authService = authService;
