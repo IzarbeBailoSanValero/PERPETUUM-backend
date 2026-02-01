@@ -59,6 +59,15 @@ namespace PERPETUUM.Controllers
             }
         }
 
+        // //para poder generar un hash y crear un administrador para loggearme con él (problema bcrypt) // busco la solución
+        // [HttpGet("test-hash")]
+        // public IActionResult GetHash()
+        // {
+        //     return Ok(BCrypt.Net.BCrypt.HashPassword("admin123"));
+        // }
+
+        // //resultado -->  $2a$11$jNRYr2iZD2xWNHtuXD6Gj.S4kU6OsQd/B/G49eo49pbuzOORQ1oh6
+
 
     }
 }

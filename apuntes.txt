@@ -5,3 +5,7 @@ Logger
     - .:/apiFolderInContainer
     - ./Logs.log:/LogsFileInContainer.log
 ,eter esto en el docker cocmpose para guardarlo en el contenedo.
+
+
+hash para admin123 --> usuario Izarbe
+$2a$11$jNRYr2iZD2xWNHtuXD6Gj.S4kU6OsQd/B/G49eo49pbuzOORQ1oh6
