@@ -10,6 +10,9 @@ using PERPETUUM.DTOs;
 using PERPETUUM.Models;
 using Microsoft.Extensions.Logging;
 
+//hasheado
+using BCrypt.Net;
+
 
 
 
@@ -20,35 +23,89 @@ namespace PERPETUUM.Services
         private readonly IConfiguration _configuration;
         private readonly IUserRepository _repository;
 
-        public AuthService(IConfiguration configuration, IUserRepository repository)
+        //repositorios para login (forma de integrar el login en los tres perfiles sugerida IA)
+        private readonly IStaffRepository _staffRepo;
+        private readonly IMemorialGuardianRepository _guardianRepo;
+        private readonly IUserRepository _userRepo;
+
+        public AuthService(
+            IConfiguration configuration,
+            IStaffRepository staffRepo,
+            IMemorialGuardianRepository guardianRepo,
+            IUserRepository userRepo,
+            ILogger<AuthService> logger)
         {
             _configuration = configuration;
-            _repository = repository;
+            _staffRepo = staffRepo;
+            _guardianRepo = guardianRepo;
+            _userRepo = userRepo;
+            _logger = logger;
         }
 
-        //DAME UN USUARIO CONE STAS CREDENCIALES: envía el Dto de los credenciales del usuario, comprueba qué usuario es y devuelve el token jwt
-        public string Login(LoginDtoIn loginDtoIn)
-        {
-            // 1. El repositorio busca y valida password
-            var userDto = _repository.GetUserFromCredentials(loginDtoIn);
 
-            // 2.
-            if (userDto == null)
+
+        public async Task<string> LoginAsync(LoginDtoIn loginDto)
+        {
+            var staff = await _staffRepo.GetByEmailAsync(loginDto.Email);
+            if (staff != null)
             {
-                // Lanzamos la excepción que tu Controller está esperando capturar
-                throw new KeyNotFoundException("Usuario o contraseña incorrectos.");
+                if (BCrypt.Net.BCrypt.Verify(loginDto.Password, staff.PasswordHash))
+                {
+                    string role = staff.IsAdmin ? Roles.Admin : Roles.Staff;
+                    return GenerateToken(staff.Id, staff.Name, staff.Email, role, staff.FuneralHomeId);
+                }
             }
 
-            // 3. Si existe, generamos token
-            return GenerateToken(userDto);
+            var guardian = await _guardianRepo.GetByEmailAsync(loginDto.Email);
+            if (guardian != null)
+            {
+                if (BCrypt.Net.BCrypt.Verify(loginDto.Password, guardian.PasswordHash))
+                {
+                    return GenerateToken(guardian.Id, guardian.Name, guardian.Email, Roles.Guardian, guardian.FuneralHomeId);
+                }
+            }
+
+            var user = await _userRepo.GetByEmailAsync(loginDto.Email);
+            if (user != null)
+            {
+                if (BCrypt.Net.BCrypt.Verify(loginDto.Password, user.PasswordHash))
+                {
+                    return GenerateToken(user.Id, user.Name, user.Email, Roles.StandardUser, null);
+                }
+            }
+
+            _logger.LogWarning($"Login fallido asíncrono: {loginDto.Email}");
+            throw new KeyNotFoundException("Usuario o contraseña incorrectos.");
         }
 
-        //CREA UN USUARIO CON ESTAS CREDENCIALES
-        public string Register(UserDtoIn userDtoIn)
+
+        public async Task<string> RegisterAsync(UserDtoIn userDtoIn)
         {
-            var user = _repository.AddUserFromCredentials(userDtoIn);
-            return GenerateToken(user);
+            var existing = await _userRepo.GetByEmailAsync(userDtoIn.Email);
+            if (existing != null)
+            {
+                throw new ArgumentException("El email ya está registrado.");
+            }
+
+
+            string passwordHash = BCrypt.Net.BCrypt.HashPassword(userDtoIn.Password);
+
+            var newUser = new User
+            {
+                Name = userDtoIn.UserName,
+                Email = userDtoIn.Email,
+                PasswordHash = passwordHash
+            };
+
+            int newId = await _userRepo.CreateUserAsync(newUser);
+
+            return GenerateToken(newId, newUser.Name, newUser.Email, Roles.StandardUser, null);
         }
+
+
+
+
+
 
         //CONFIGURACIONES DE LA GENERACIÓN DEDtoKEN
         public string GenerateToken(UserDtoOut userDtoOut)

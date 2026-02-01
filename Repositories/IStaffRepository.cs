@@ -13,4 +13,5 @@ public interface IStaffRepository
     Task<bool> ExistsByEmailAsync(string email, int? excludeId = null);
     Task<bool> ExistsByDniAsync(string dni, int? excludeId = null);
     Task<List<Staff>> GetByFuneralHomeIdAsync(int funeralHomeId);
+    Task<Staff?> GetByEmailAsync(string email);
 }

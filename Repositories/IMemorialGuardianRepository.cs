@@ -1,0 +1,1 @@
+Task<MemorialGuardian?> GetByEmailAsync(string email);
