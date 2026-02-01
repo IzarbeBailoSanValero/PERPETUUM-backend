@@ -1,144 +1,77 @@
 using MySqlConnector;
-using PERPETUUM.DTOs;
 using PERPETUUM.Models;
-using System.Data;
 using Microsoft.Extensions.Logging;
-using BCrypt.Net;
-
-
-using MySqlConnector;
-using PERPETUUM.Models;
-
-
+using System.Data; // Necesario para manejar DBNull
 
 namespace PERPETUUM.Repositories;
 
 public class UserRepository : IUserRepository
 {
     private readonly string _connectionString;
+    private readonly ILogger<UserRepository> _logger;
 
-    public UserRepository(IConfiguration configuration)
+    public UserRepository(IConfiguration configuration, ILogger<UserRepository> logger)
     {
-        _connectionString = configuration.GetConnectionString("PerpetuumDB");
+        _connectionString = configuration.GetConnectionString("PerpetuumDB") 
+                            ?? throw new ArgumentNullException("No se encontró la cadena de conexión 'PerpetuumDB'.");
+        _logger = logger;
     }
 
-   // MÉTODO LOGIN
-    public UserDtoOut? GetUserFromCredentials(LoginDtoIn loginDto)
+
+    //para login: 
+    // - Devuelve el Modelo User (con el Hash)
+    // - No verifica contraseña, solo busca datos --> verificación en el service
+    public async Task<User?> GetByEmailAsync(string email)
     {
-        using (var connection = new MySqlConnection(_connectionString))
+        using var connection = new MySqlConnection(_connectionString);
+        await connection.OpenAsync();
+
+        string query = "SELECT * FROM `User` WHERE Email = @Email";
+
+        using var command = new MySqlCommand(query, connection);
+        command.Parameters.AddWithValue("@Email", email);
+
+        using var reader = await command.ExecuteReaderAsync();
+        if (await reader.ReadAsync())
         {
-            connection.Open();
-            string query = "SELECT Id, Name, Email, PasswordHash FROM User WHERE Email = @Email";
-
-            using (var command = new MySqlCommand(query, connection))
-            {
-                command.Parameters.AddWithValue("@Email", loginDto.Email);
-
-                using (var reader = command.ExecuteReader())
-                {
-                    if (reader.Read()) 
-                    {
-                        var storedHash = reader.GetString("PasswordHash");
-
-                        // Verificación con BCrypt --> Verify toma (passwordTextoPlano, hashGuardadoEnBD) --> Devuelve true si coinciden, false si no.
-                        bool isValid = BCrypt.Net.BCrypt.Verify(loginDto.Password, storedHash);
-
-                        if (isValid)
-                        {
-                            return new UserDtoOut
-                            {
-                                UserId = reader.GetInt32("Id"),
-                                UserName = reader.GetString("Name"),
-                                Email = reader.GetString("Email"),
-                                Role = Roles.StandardUser // Rol por defecto
-                            };
-                        }
-                    }
-                }
-            }
+            return MapFromReader(reader);
         }
-        return null; //  si no existe email o password incorrecto
+        return null;
+    }
+
+
+    // para registro --> Recibe el objeto User ya con la contraseña encriptada (PasswordHash). se encripta en el service.
+    public async Task<int> CreateUserAsync(User user)
+    {
+        using var connection = new MySqlConnection(_connectionString);
+        await connection.OpenAsync();
+
+        string query = @"INSERT INTO `User` (Name, Email, PasswordHash, PhoneNumber, BirthDate) 
+                         VALUES (@Name, @Email, @Pass, @Phone, @Birth);
+                         SELECT LAST_INSERT_ID();";
+
+        using var command = new MySqlCommand(query, connection);
+        command.Parameters.AddWithValue("@Name", user.Name);
+        command.Parameters.AddWithValue("@Email", user.Email);
+        command.Parameters.AddWithValue("@Pass", user.PasswordHash);
+        command.Parameters.AddWithValue("@Phone", (object?)user.PhoneNumber ?? DBNull.Value);
+        command.Parameters.AddWithValue("@Birth", (object?)user.BirthDate ?? DBNull.Value);
+
+        var idGenerado = await command.ExecuteScalarAsync();
+        return Convert.ToInt32(idGenerado); //hay que hacer convert por ue devuelve un tipo de nuemero grande que no se puede castear diredctamente con (int)
     }
 
    
-    public UserDtoOut AddUserFromCredentials(UserDtoIn userDto)
-    {
-        using (var connection = new MySqlConnection(_connectionString))
-        {
-            connection.Open();
-
-            //  Usamos BCrypt para hashear la contraseña
-            string hash = BCrypt.Net.BCrypt.HashPassword(userDto.Password);
-            
-            string role = Roles.StandardUser; 
-
-            string query = @"INSERT INTO User (Name, Email, PasswordHash) 
-                             VALUES (@Name, @Email, @Pass);
-                             SELECT LAST_INSERT_ID();";
-
-            using (var command = new MySqlCommand(query, connection))
-            {
-                command.Parameters.AddWithValue("@Name", userDto.UserName);
-                command.Parameters.AddWithValue("@Email", userDto.Email);
-                command.Parameters.AddWithValue("@Pass", hash); 
-
-                int newId = Convert.ToInt32(command.ExecuteScalar());
-
-                return new UserDtoOut
-                {
-                    UserId = newId,
-                    UserName = userDto.UserName,
-                    Email = userDto.Email,
-                    Role = role
-                };
-            }
-        }
-    }
-    
-
-
-    public async Task<User?> GetByEmailAsync(string email)
-{
-    using var connection = new MySqlConnection(_connectionString);
-    await connection.OpenAsync();
-    string query = "SELECT * FROM `User` WHERE Email = @Email"; 
-    
-    using var command = new MySqlCommand(query, connection);
-    command.Parameters.AddWithValue("@Email", email);
-    
-    using var reader = await command.ExecuteReaderAsync();
-    if (await reader.ReadAsync())
+    private User MapFromReader(MySqlDataReader reader)
     {
         return new User
         {
             Id = reader.GetInt32("Id"),
             Name = reader.GetString("Name"),
             Email = reader.GetString("Email"),
-            PasswordHash = reader.GetString("PasswordHash") 
-            
+            PasswordHash = reader.GetString("PasswordHash"),
+            PhoneNumber = reader.IsDBNull(reader.GetOrdinal("PhoneNumber")) ? null : reader.GetString("PhoneNumber"),
+            BirthDate = reader.IsDBNull(reader.GetOrdinal("BirthDate")) ? null : reader.GetDateTime("BirthDate")
         };
     }
-    return null;
-}
-
-//TODO: QUITAR FUNCIÓN DE AÑADIR VIEJA
-public async Task<int> CreateUserAsync(User user)
-{
-    using var connection = new MySqlConnection(_connectionString);
-    await connection.OpenAsync();
-    
-    // Aquí YA NO hasheamos, asumimos que viene hasheada del servicio
-    string query = @"INSERT INTO `User` (Name, Email, PasswordHash, CreatedDate) 
-                     VALUES (@Name, @Email, @Pass, NOW());
-                     SELECT LAST_INSERT_ID();";
-
-    using var command = new MySqlCommand(query, connection);
-    command.Parameters.AddWithValue("@Name", user.Name);
-    command.Parameters.AddWithValue("@Email", user.Email);
-    command.Parameters.AddWithValue("@Pass", user.PasswordHash);
-
-    return Convert.ToInt32(await command.ExecuteScalarAsync());
-}
-    // ... Resto de métodos (GetById, etc.) ...
-    //TODO::::::::
 }
