@@ -2,17 +2,17 @@ using System.ComponentModel.DataAnnotations;
 
 namespace PERPETUUM.DTOs;
 
+
 public class UserDtoIn
-    {
-        [Required]
-        public string UserName { get; set; }
+{
+    [Required(ErrorMessage = "El nombre es obligatorio")]
+    public string Name { get; set; } = string.Empty; 
 
-        [EmailAddress]
-        [Required(ErrorMessage = "Email is required")]
-        public string Email { get; set; }
-        
-        [Required]
-        [StringLength(15, ErrorMessage = "Password must be 15 characters")]
-        public string Password { get; set; }
+    [Required(ErrorMessage = "El email es obligatorio")]
+    [EmailAddress(ErrorMessage = "Formato de email incorrecto")]
+    public string Email { get; set; } = string.Empty;
+    
+    [Required(ErrorMessage = "La contraseña es obligatoria")]
+    [MinLength(6, ErrorMessage = "La contraseña debe tener al menos 6 caracteres")]
+    public string Password { get; set; } = string.Empty;
 }
-
