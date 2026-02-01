@@ -9,7 +9,7 @@ namespace PERPETUUM.Controllers;
 
 [Route("api/[controller]")]
 [ApiController]
-[Authorize]
+[Authorize] //Todas las acciones del controlador requieren un usuario autenticado. Si alguien intenta acceder sin token → 401 Unauthorized.
 public class MemorialGuardianController : ControllerBase
 {
     private readonly IMemorialGuardianService _service;
@@ -22,7 +22,7 @@ public class MemorialGuardianController : ControllerBase
     }
 
     [HttpPost]
-    [Authorize(Roles = Roles.Staff + "," + Roles.Admin)]
+    [Authorize(Roles = Roles.Staff + "," + Roles.Admin)] //Si el usuario está autenticado pero no tiene esos roles → 403 Forbidden.
     public async Task<ActionResult> Create([FromBody] GuardianCreateDTO dto)
     {
         try
