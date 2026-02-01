@@ -1,2 +1,10 @@
-// Task<MemorialGuardian?> GetByEmailAsync(string email);
-//todo: 
+using PERPETUUM.Models;
+
+namespace PERPETUUM.Repositories;
+
+public interface IMemorialGuardianRepository
+{
+    Task<MemorialGuardian?> GetByEmailAsync(string email);
+    Task<MemorialGuardian?> GetByIdAsync(int id);
+    Task<int> AddAsync(MemorialGuardian guardian);
+}

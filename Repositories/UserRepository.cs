@@ -17,7 +17,7 @@ public class UserRepository : IUserRepository
         _logger = logger;
     }
 
-//---FUNCIONES RELACIONADAS CON AUTENT.
+//---FUNCIONES RELACIONADAS CON AUTENTICACIÓN.
 
     //para login: 
     // - Devuelve el Modelo User (con el Hash)
