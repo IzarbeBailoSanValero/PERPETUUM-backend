@@ -46,7 +46,7 @@ public class MemorialGuardianRepository : IMemorialGuardianRepository
             throw;
         }
     }
-}
+
 
 
 
@@ -144,4 +144,5 @@ public class MemorialGuardianRepository : IMemorialGuardianRepository
             PasswordHash = reader.GetString("PasswordHash")
         };
     }
+
 }

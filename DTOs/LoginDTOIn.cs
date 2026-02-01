@@ -7,7 +7,7 @@ public class LoginDtoIn
         [Required]
         public string Email { get; set; }
         [Required]
-        [StringLength(15, ErrorMessage = "La contraseña debe ser de 15 caracteres")]
+        [MinLength(6, ErrorMessage = "La contraseña debe ser de al menos 6 caracteres")]
         public string Password { get; set; }
 }
 

@@ -20,8 +20,8 @@ namespace PERPETUUM.Services
 {
     public class AuthService : IAuthService
     {
+        private readonly ILogger<AuthService> _logger;
         private readonly IConfiguration _configuration;
-        private readonly IUserRepository _repository;
 
         //repositorios para login (forma de integrar el login en los tres perfiles sugerida IA)
         private readonly IStaffRepository _staffRepo;
@@ -92,7 +92,7 @@ namespace PERPETUUM.Services
 
             var newUser = new User
             {
-                Name = userDtoIn.UserName,
+                Name = userDtoIn.Name,
                 Email = userDtoIn.Email,
                 PasswordHash = passwordHash
             };
@@ -108,21 +108,33 @@ namespace PERPETUUM.Services
 
 
         //CONFIGURACIONES DE LA GENERACIÓN DEDtoKEN
-        public string GenerateToken(UserDtoOut userDtoOut)
+        //modifico la definición del método de Alejandro de  GenerateToken para que acepte los 5 parámetros individuales para que acepte staff, guardian y user, en lugar de usar un mismo dto (idea IA)
+
+        private string GenerateToken(int userId, string userName, string email, string role, int? funeralHomeId)
         {
             var key = Encoding.UTF8.GetBytes(_configuration["JWT:SecretKey"]);
+            
+            
+            var claims = new List<Claim>
+            {
+                new Claim(ClaimTypes.NameIdentifier, userId.ToString()),
+                new Claim(ClaimTypes.Name, userName),
+                new Claim(ClaimTypes.Role, role),
+                new Claim(ClaimTypes.Email, email)
+            };
+
+            // Solo añadimos el FuneralHomeId si tiene valor --> staff y guardian. user no.
+            if (funeralHomeId.HasValue)
+            {
+                claims.Add(new Claim("FuneralHomeId", funeralHomeId.Value.ToString()));
+            }
+
             var tokenDescriptor = new SecurityTokenDescriptor
             {
                 Issuer = _configuration["JWT:ValidIssuer"],
                 Audience = _configuration["JWT:ValidAudience"],
-                Subject = new ClaimsIdentity(new Claim[]
-                    {
-                        new Claim(ClaimTypes.NameIdentifier, Convert.ToString(userDtoOut.UserId)),
-                        new Claim(ClaimTypes.Name, userDtoOut.UserName),
-                        new Claim(ClaimTypes.Role, userDtoOut.Role),
-                        new Claim(ClaimTypes.Email, userDtoOut.Email)
-                    }),
-                Expires = DateTime.UtcNow.AddDays(7), // AddMinutes(60)
+                Subject = new ClaimsIdentity(claims),
+                Expires = DateTime.UtcNow.AddDays(7), // Token válido por 7 días
                 SigningCredentials = new SigningCredentials(new SymmetricSecurityKey(key), SecurityAlgorithms.HmacSha256Signature)
             };
 
@@ -131,6 +143,9 @@ namespace PERPETUUM.Services
             var tokenString = tokenHandler.WriteToken(token);
             return tokenString;
         }
+
+
+
 
         //metodo creado por alejandro: 
         // ClaimsPrincipal es una clase que crea el porpio .net (un IEnumerable, un list) para que cuando recibe un token, lo descifra y guarda ahí las propiedades
