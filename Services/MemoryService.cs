@@ -42,7 +42,8 @@ public class MemoryService : IMemoryService
     }
 
 
-    public async Task<int> AddMemoryAsync(MemoryCreateDTO dto)
+    //no infiero el tipo en el backend porque le usuario debe poder elegir anécdota vs condolencia
+    public async Task<int> AddMemoryAsync(MemoryCreateDTO dto , int currentUserId)
     {
         //valido que si es de tipo condolencia o anécdota exista texto
         if ((dto.Type == 1 || dto.Type == 2) && string.IsNullOrWhiteSpace(dto.TextContent))
@@ -50,12 +51,17 @@ public class MemoryService : IMemoryService
             throw new ArgumentException("El contenido de texto es obligatorio para condolencias y anécdotas.");
         }
 
+        if (dto.Type == 3 && string.IsNullOrWhiteSpace(dto.MediaURL))
+        {
+            throw new ArgumentException("Es necesario incluir contenido visual.");
+        }
+
         _logger.LogInformation($"Service: Creando nueva memoria para difunto {dto.DeceasedId}");
 
         var memory = new Memory
         {
             DeceasedId = dto.DeceasedId,
-            UserId = dto.UserId,
+            UserId = currentUserId,
             Type = (MemoryType) dto.Type, // en el model es MemoryType, en el dtocreate es un int
             Status = MemoryStatus.Pending, //por defecto pending
             TextContent = dto.TextContent,
@@ -111,3 +117,4 @@ private MemoryResponseDTO MapToDTO(Memory m)
 
 
 }
+

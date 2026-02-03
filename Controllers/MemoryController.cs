@@ -2,19 +2,22 @@ using Microsoft.AspNetCore.Mvc;
 using PERPETUUM.DTOs;
 using PERPETUUM.Models;
 using PERPETUUM.Services;
+using Microsoft.AspNetCore.Authorization;
 
 namespace PERPETUUM.Controllers;
+
+using System.Security.Claims;
 
 [Route("api/[controller]")]
 [ApiController]
 public class MemoryController : ControllerBase
 {
-    private readonly IMemoryService _service;
+    private readonly IMemoryService _memoryService;
     private readonly ILogger<MemoryController> _logger;
 
     public MemoryController(IMemoryService service, ILogger<MemoryController> logger)
     {
-        _service = service;
+        _memoryService = service;
         _logger = logger;
     }
 
@@ -24,7 +27,7 @@ public class MemoryController : ControllerBase
     {
         try
         {
-            var list = await _service.GetByDeceasedIdAsync(deceasedId, approved);
+            var list = await _memoryService.GetByDeceasedIdAsync(deceasedId, approved);
             return Ok(list);
         }
         catch (Exception ex)
@@ -36,6 +39,7 @@ public class MemoryController : ControllerBase
 
 
     [HttpPost]
+    [Authorize] //extraigo el id de usuario del token de user --> se asigna a l objeto antes d ellamar al service
     public async Task<ActionResult> AddMemory([FromBody] MemoryCreateDTO dto)
     {
         if (!ModelState.IsValid)
@@ -45,8 +49,23 @@ public class MemoryController : ControllerBase
         }
         try
         {
-            var newId = await _service.AddMemoryAsync(dto);
+
+            //cojo id de los claims --> el objeto User es una propiedad de ControllerBase que representa al usuario autenticado que hace la petición, por eso tengo acceso a él.
+            var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier);
+
+            if(userIdClaim == null) return Unauthorized(); //problema al obtener claim --> problema con el token
+
+            //como el vlaor de claim llega como string xq JSON, hay que parsearlo a string
+            //no puedo hacer cast directo (int) porque no son tipos compatibles
+           int currentUserId = int.Parse(userIdClaim.Value);
+
+
+
+            var newId = await _memoryService.AddMemoryAsync(dto , currentUserId);
             return CreatedAtAction(nameof(GetByDeceased), new { deceasedId = dto.DeceasedId }, new { id = newId });
+           
+
+
         }
         catch (ArgumentException ex)
             {
@@ -75,7 +94,7 @@ public class MemoryController : ControllerBase
         try
         {
             var status = (MemoryStatus)statusInt;
-            bool hasBeenUpdated = await _service.UpdateStatusAsync(id, status);
+            bool hasBeenUpdated = await _memoryService.UpdateStatusAsync(id, status);
 
             if (!hasBeenUpdated) return NotFound($"No se encontró la memoria con ID {id}.");
 
@@ -99,7 +118,7 @@ public class MemoryController : ControllerBase
     {
         try 
             {
-                var hasBeenDeleted = await _service.DeleteMemoryAsync(id);
+                var hasBeenDeleted = await _memoryService.DeleteMemoryAsync(id);
 
                 if (!hasBeenDeleted)
                 {

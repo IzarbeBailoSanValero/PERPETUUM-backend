@@ -8,9 +8,6 @@ public class MemoryCreateDTO
     public int DeceasedId { get; set; }
 
     [Required]
-    public int UserId { get; set; }
-
-    [Required]
     public int Type { get; set; }  // 1: Condolence, 2: Anecdote, 3: Photo
 
     public string? TextContent { get; set; }
