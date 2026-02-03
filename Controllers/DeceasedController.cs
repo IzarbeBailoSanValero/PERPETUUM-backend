@@ -9,6 +9,7 @@ namespace PERPETUUM.Controllers
     
     [ApiController]
     [Route("api/[controller]")] 
+    [Authorize]
     public class DeceasedController : ControllerBase
     {
         private readonly IDeceasedService _deceasedService;
@@ -22,6 +23,7 @@ namespace PERPETUUM.Controllers
 
         
         [HttpGet]
+        [AllowAnonymous]
         public async Task<ActionResult<List<DeceasedResponseDTO>>> GetAllDeceased()
         {
             try
@@ -42,6 +44,7 @@ namespace PERPETUUM.Controllers
  
 
         [HttpGet("{deceasedId}")]
+        [AllowAnonymous]
         public async Task<ActionResult<DeceasedResponseDTO>> GetDeceased(int deceasedId)
         {
             try
@@ -67,6 +70,7 @@ namespace PERPETUUM.Controllers
 
      
         [HttpGet("search")]
+        [AllowAnonymous]
         public async Task<ActionResult<List<DeceasedResponseDTO>>> Search([FromQuery] DeceasedSearchDTO searchDTO)
         {
             try
@@ -83,6 +87,7 @@ namespace PERPETUUM.Controllers
 
        
         [HttpPost]
+        [Authorize(Roles = Roles.Admin + "," + Roles.Staff)]
         public async Task<ActionResult<DeceasedResponseDTO>> CreateDeceased([FromBody] DeceasedCreateDTO deceasedDTO)
         {
             if (!ModelState.IsValid)
@@ -117,8 +122,10 @@ namespace PERPETUUM.Controllers
 
         
         [HttpPut("{deceasedId}")]
+        [Authorize(Roles = Roles.Admin + "," + Roles.Staff + "," + Roles.Guardian)]
         public async Task<IActionResult> UpdateDeceased(int deceasedId, [FromBody] DeceasedUpdateDTO deceasedDto)
         {
+            //TODO: COMPROBAR QUE ES EL GUARDIAN DEL DIFUNTO, PARA QUE SOLO PUEDA BORRAR ESE
             if (!ModelState.IsValid)
             {
                 _logger.LogWarning("Fallo al validar difunto debido a un formato de datos enviados inválido.");
@@ -159,6 +166,7 @@ namespace PERPETUUM.Controllers
         }
 
         [HttpDelete("{deceasedId}")]
+        [Authorize(Roles = Roles.Admin + "," + Roles.Staff)] //si el familiar quiere borrar, deberá contactar con la funeraria o perpetuum
         public async Task<IActionResult> DeleteDeceased(int deceasedId)
         {
             try 

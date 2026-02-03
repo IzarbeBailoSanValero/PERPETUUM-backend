@@ -1,6 +1,6 @@
 using Microsoft.AspNetCore.Mvc;
 using PERPETUUM.DTOs;
-using PERPETUUM.Models;
+using PERPETUUM.Models; //para utilizar los roles en la protección
 using PERPETUUM.Services;
 using Microsoft.AspNetCore.Authorization;
 
@@ -10,6 +10,7 @@ using System.Security.Claims;
 
 [Route("api/[controller]")]
 [ApiController]
+//hago la proteccion a nivel de función
 public class MemoryController : ControllerBase
 {
     private readonly IMemoryService _memoryService;
@@ -22,6 +23,8 @@ public class MemoryController : ControllerBase
     }
 
 
+
+    [AllowAnonymous] //se que no hace falta ponerlo porque no he puesto autorize a nivel de controller, pero lo dejo por si en un futuro lo hago, no se oculte. así más explicativo tambien 
     [HttpGet("deceased/{deceasedId}")]
     public async Task<ActionResult<List<MemoryResponseDTO>>> GetByDeceased(int deceasedId, [FromQuery] bool approved = true) //     Permite añadir ?approved=false en la URL. //el deceased lo coge del nombre de la dirección directamente
     {
@@ -39,7 +42,7 @@ public class MemoryController : ControllerBase
 
 
     [HttpPost]
-    [Authorize] //extraigo el id de usuario del token de user --> se asigna a l objeto antes de llamar al service
+    [Authorize(Roles = Roles.StandardUser)]//extraigo el id de usuario del token de user --> se asigna a l objeto antes de llamar al service
     public async Task<ActionResult> AddMemory([FromBody] MemoryCreateDTO dto)
     {
         if (!ModelState.IsValid)
@@ -81,8 +84,10 @@ public class MemoryController : ControllerBase
     }
 
 
-
+//para utilizar varios hay ue concatenar strings
 [HttpPut("{id}/status")]
+[Authorize(Roles = Roles.Admin + "," + Roles.Guardian)]
+//TODO: COMPROBAR QUE el Guardián es EL guardián de ESTE difunto.
     public async Task<ActionResult> UpdateStatus(int id, [FromBody] int statusInt)
     {
           if (!ModelState.IsValid)
@@ -114,6 +119,7 @@ public class MemoryController : ControllerBase
 
 
 [HttpDelete("{id}")]
+//TODO: ARREGLAR ESTE, ESTÁ MAL --> COMO TENGO QUE COMPROBAR QUE ESTÉ ABIERTO A ADMIN, GUARDIAN O AUTOR HAGO LA COMPROBACIÓN DENTRO PARA VER QUE EL USER ES EL AUTOR. LO PONGO COMO AUTHORIZED, ABIERTO A LOS LOGGEADOS
     public async Task<ActionResult> Delete(int id)
     {
         try 

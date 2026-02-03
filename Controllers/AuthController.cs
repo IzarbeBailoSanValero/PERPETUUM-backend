@@ -18,6 +18,7 @@ namespace PERPETUUM.Controllers
 
 
         [HttpPost("Login")]
+        [AllowAnonymous]
         public async Task<IActionResult> Login([FromBody] LoginDtoIn loginDto)
         {
             if (!ModelState.IsValid) return BadRequest(ModelState);
@@ -40,6 +41,7 @@ namespace PERPETUUM.Controllers
 
 
         [HttpPost("Register")]
+        [AllowAnonymous]
         public async Task<IActionResult> Register([FromBody] UserDtoIn userDto)
         {
             if (!ModelState.IsValid) return BadRequest(ModelState);

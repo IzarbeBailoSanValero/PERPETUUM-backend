@@ -2,11 +2,13 @@ using Microsoft.AspNetCore.Mvc;
 using PERPETUUM.Services;
 using PERPETUUM.DTOs;
 using Microsoft.AspNetCore.Authorization;
+using PERPETUUM.Models;
 
 namespace PERPETUUM.Controllers;
 
 [ApiController]
 [Route("api/[controller]")]
+[Authorize(Roles = Roles.Admin)]
 public class FuneralHomeController : ControllerBase
 {
     private readonly IFuneralHomeService _service;

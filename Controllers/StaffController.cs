@@ -8,24 +8,31 @@ namespace PERPETUUM.Controllers;
 
 [ApiController]
 [Route("api/[controller]")]
+[Authorize] //1º seguridad : min loggeado
 public class StaffController : ControllerBase
 {
     private readonly IStaffService _service;
     private readonly ILogger<StaffController> _logger;
+    private readonly IAuthService _authService;
 
-    public StaffController(IStaffService service, ILogger<StaffController> logger)
+    public StaffController(IStaffService service, ILogger<StaffController> logger, IAuthService authService)
     {
         _service = service;
         _logger = logger;
+        _authService = authService;
+        
     }
 
     
     // GET: api/staff/5
     [HttpGet("{id}")]
+    [Authorize(Roles = Roles.Admin + "," + Roles.Staff)]
+    //2º seguridad: autorizo solo a staff y admin
     public async Task<ActionResult<StaffResponseDTO>> GetById(int id)
     {
         try
         {
+            if (!_authService.HasAccessToResource(id, User)) return Forbid(); //3º seguridad, una vez que es seguro que se ha metido un admin o staff, podemos ver por id
             var result = await _service.GetByIdAsync(id);
             if (result == null) 
                 return NotFound(new { message = $"No se encontró el empleado con ID {id}" });
@@ -41,10 +48,13 @@ public class StaffController : ControllerBase
 
     
     [HttpGet("funeralhome/{funeralHomeId}")]
+    [Authorize(Roles = Roles.Admin + "," + Roles.Staff)] //un trabajador puede ver a sus compis a grandes rasgos
     public async Task<ActionResult<List<StaffResponseDTO>>> GetByFuneralHome(int funeralHomeId)
     {
         try
         {
+            //TODO: // Aquí podríamos validar que el Staff pertenezca a esa funeraria mirando su Token
+            
             var list = await _service.GetByFuneralHomeIdAsync(funeralHomeId);
             
             
@@ -60,9 +70,10 @@ public class StaffController : ControllerBase
         }
     }
 
-//solo podrás postear trabajadores si eres admin. para ello primero te loggeas como admin, consigues el token. cuando haces la peticion post se pone el token de admin y deja. 
+
+
     [HttpPost]
-    [Authorize(Roles = Roles.Admin)]
+    [Authorize(Roles = Roles.Admin)]//solo podrás postear trabajadores si eres admin. para ello primero te loggeas como admin, consigues el token. cuando haces la peticion post se pone el token de admin y deja. 
     public async Task<ActionResult> Create([FromBody] StaffCreateDTO dto)
     {
         if (!ModelState.IsValid) return BadRequest(ModelState);
@@ -88,6 +99,7 @@ public class StaffController : ControllerBase
 
     
     [HttpPut("{id}")]
+    [Authorize(Roles = Roles.Admin)]
     public async Task<IActionResult> Update(int id, [FromBody] StaffUpdateDTO dto)
     {
         if (id != dto.Id) 
@@ -118,6 +130,7 @@ public class StaffController : ControllerBase
 
     
     [HttpDelete("{id}")]
+    [Authorize(Roles = Roles.Admin)]
     public async Task<IActionResult> Delete(int id)
     {
         try
