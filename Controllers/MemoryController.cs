@@ -39,7 +39,7 @@ public class MemoryController : ControllerBase
 
 
     [HttpPost]
-    [Authorize] //extraigo el id de usuario del token de user --> se asigna a l objeto antes d ellamar al service
+    [Authorize] //extraigo el id de usuario del token de user --> se asigna a l objeto antes de llamar al service
     public async Task<ActionResult> AddMemory([FromBody] MemoryCreateDTO dto)
     {
         if (!ModelState.IsValid)
