@@ -96,10 +96,10 @@ namespace PERPETUUM.Controllers
             
                 int newId = await _deceasedService.CreateDeceasedAsync(deceasedDTO);
 
-                // Capturamos el elemento creado para devolverlo completo
+                //cojo elemento para devolverlo en el createAdAction
                 var createdDeceased = await _deceasedService.GetDeceasedProfileAsync(newId);
 
-                // Devolvemos 201 Created y la ruta al recurso
+                
                 return CreatedAtAction(nameof(GetDeceased), new { deceasedId = newId }, createdDeceased);
             }
             catch (ArgumentException ex)

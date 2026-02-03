@@ -12,10 +12,11 @@ public class DeceasedService : IDeceasedService
     private readonly IMemoryRepository _memoryRepository;
     
 
-    public DeceasedService(IDeceasedRepository repository, ILogger<DeceasedService> logger)
+    public DeceasedService(IDeceasedRepository repository, ILogger<DeceasedService> logger, IMemoryRepository memoryRepository)
     {
         _repository = repository;
         _logger = logger;
+        _memoryRepository = memoryRepository;
     }
 
     public async Task<List<DeceasedResponseDTO>> GetAllDeceasedAsync()
