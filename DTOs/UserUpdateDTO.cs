@@ -2,6 +2,8 @@ using System.ComponentModel.DataAnnotations;
 
 namespace PERPETUUM.DTOs;
 
+
+//no hará falta pedir el id del usuario a editar porque se saca del token o de la url
 public class UserUpdateDto// Permite editar datos, pero NO la contraseña ni rol
 {
     [Required(ErrorMessage = "El nombre es obligatorio")]

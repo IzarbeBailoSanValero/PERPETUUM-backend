@@ -72,8 +72,9 @@ public class StaffService : IStaffService
             }
 
             //cojo valor de funeraria
-            var fh = await _funeralHomeRepository.GetByIdAsync(dto.FuneralHomeId);
-            if (fh == null) throw new ArgumentException($"No existe la funeraria {dto.FuneralHomeId}");
+            //?? Resulta que no se puede pasar int? a una función que es pera int, no hay conversión de tipos nullables. Hay que poner .Value para especificar que coja el valor entero que contiene el nullable. así lo convierte a int sólo si no es null
+            var fh = await _funeralHomeRepository.GetByIdAsync(dto.FuneralHomeId.Value);
+            if (fh == null) throw new ArgumentException($"No existe la funeraria {dto.FuneralHomeId.Value}");
 
         }
 

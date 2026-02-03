@@ -32,9 +32,10 @@ public class UserService : IUserService
         };
     }
 
-    public async Task<bool> UpdateUserProfileAsync(int id, UserUpdateDto dto) //no modifica contraseñas, eso si acaso implemento en auth
+    public async Task<bool> UpdateUserProfileAsync(int id, UserUpdateDto dto) //no modifica contraseñas, eso si acaso implemento en auth //coge el id de la url! por eso no lo pido al front en el put
     {
-        
+       
+
         var user = await _repository.GetByIdAsync(id);
         if (user == null) return false;
 

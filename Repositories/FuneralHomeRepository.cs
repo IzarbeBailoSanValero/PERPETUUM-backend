@@ -64,7 +64,7 @@ public class FuneralHomeRepository : IFuneralHomeRepository
     }
 
 
-    public async Task<FuneralHome?> GetByIdAsync(int id)
+    public async Task<FuneralHome?> GetByIdAsync(int? id)
     {
         _logger.LogInformation($"Iniciando GetByIdAsync en FuneralHome ID: {id}");
         FuneralHome? funeralHome = null;
@@ -271,4 +271,6 @@ public class FuneralHomeRepository : IFuneralHomeRepository
             }
         }
     }
+
+    
 }

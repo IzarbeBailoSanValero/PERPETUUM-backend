@@ -74,6 +74,8 @@ builder.Services.AddScoped<IStaffService, StaffService>();
 
 //User
 builder.Services.AddScoped<IUserRepository, UserRepository>();
+builder.Services.AddScoped<IUserService, UserService>();
+
 
 //Auth
 builder.Services.AddScoped<IAuthService, AuthService>();
