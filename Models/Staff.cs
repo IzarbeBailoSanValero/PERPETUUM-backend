@@ -3,7 +3,7 @@ namespace PERPETUUM.Models;
 public class Staff
 {
     public int Id { get; set; }
-    public int FuneralHomeId { get; set; }
+    public int? FuneralHomeId { get; set; } //si es null es admin global y si tiene valor es empleado de funeraria
     public string Name { get; set; }
     public string Email { get; set; }
     public string DNI { get; set; }

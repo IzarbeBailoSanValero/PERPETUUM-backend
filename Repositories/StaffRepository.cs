@@ -136,6 +136,9 @@ public class StaffRepository : IStaffRepository
 
         using (var command = new MySqlCommand(query, connection))
         {
+            //si funeralhome es null (empleado admin) gestiono el null de la base de datos
+            // uso de ?? --> si el valor de izda es null usa el de la dcha 
+            command.Parameters.AddWithValue("@FuneralHomeId", staff.FuneralHomeId ?? (object)DBNull.Value);
             command.Parameters.AddWithValue("@FuneralHomeId", staff.FuneralHomeId);
             command.Parameters.AddWithValue("@Name", staff.Name);
             command.Parameters.AddWithValue("@Email", staff.Email);
@@ -309,7 +312,8 @@ public class StaffRepository : IStaffRepository
         return new Staff
         {
             Id = reader.GetInt32("Id"),
-            FuneralHomeId = reader.GetInt32("FuneralHomeId"),
+            //antes de leerlo hay que verificar que no sea nula y pete al leerla
+            FuneralHomeId = reader.IsDBNull(reader.GetOrdinal("FuneralHomeId"))? null : reader.GetInt32("FuneralHomeId"),
             Name = reader.GetString("Name"),
             Email = reader.GetString("Email"),
             DNI = reader.GetString("DNI")

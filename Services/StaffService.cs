@@ -30,9 +30,9 @@ public class StaffService : IStaffService
     }
 
 
-   public async Task<List<StaffResponseDTO>> GetByFuneralHomeIdAsync(int funeralHomeId)
+    public async Task<List<StaffResponseDTO>> GetByFuneralHomeIdAsync(int funeralHomeId)
     {
-        
+
         var funeralHome = await _funeralHomeRepository.GetByIdAsync(funeralHomeId);
 
         if (funeralHome == null)
@@ -41,10 +41,10 @@ public class StaffService : IStaffService
             return null;
         }
 
-        
+
         var staffList = await _staffRepository.GetByFuneralHomeIdAsync(funeralHomeId);
 
-       
+
         var dtoList = new List<StaffResponseDTO>();
 
         foreach (var s in staffList)
@@ -54,44 +54,60 @@ public class StaffService : IStaffService
 
         return dtoList;
     }
-  
+
     public async Task<int> CreateAsync(StaffCreateDTO dto)
-{
-   
-    var fh = await _funeralHomeRepository.GetByIdAsync(dto.FuneralHomeId);
-    if (fh == null) throw new ArgumentException($"No existe la funeraria {dto.FuneralHomeId}");
-
-  
-    if (await _staffRepository.ExistsByEmailAsync(dto.Email))
-        throw new ArgumentException($"El email {dto.Email} ya está registrado.");
-
-    if (await _staffRepository.ExistsByDniAsync(dto.DNI))
-        throw new ArgumentException($"El DNI {dto.DNI} ya está registrado.");
-
-    
-    string passwordHash = BCrypt.Net.BCrypt.HashPassword(dto.Password);
-
-
-    var newStaff = new Staff
     {
-        FuneralHomeId = dto.FuneralHomeId,
-        Name = dto.Name,
-        Email = dto.Email,
-        DNI = dto.DNI,
-        PasswordHash = passwordHash, 
-        IsAdmin = dto.IsAdmin        
-    };
+        //si un empleado es admin ignoro la funeralHome y la pongo en null. 
+        if (dto.IsAdmin)
+        {
+            // Regla 1: Los Admins NO pertenecen a ninguna funeraria (Son globales)
+            dto.FuneralHomeId = null;
+        }
+        else//si es staff normal
+        {
+            //debe tener funeraria
+            if (!dto.FuneralHomeId.HasValue)
+            {
+                throw new ArgumentException("un empleado debe vincularse a una funeraria");
+            }
 
-    return await _staffRepository.AddAsync(newStaff);
-}
-    
-   public async Task<bool> UpdateAsync(StaffUpdateDTO dto)
+            //cojo valor de funeraria
+            var fh = await _funeralHomeRepository.GetByIdAsync(dto.FuneralHomeId);
+            if (fh == null) throw new ArgumentException($"No existe la funeraria {dto.FuneralHomeId}");
+
+        }
+
+
+        if (await _staffRepository.ExistsByEmailAsync(dto.Email))
+            throw new ArgumentException($"El email {dto.Email} ya está registrado.");
+
+        if (await _staffRepository.ExistsByDniAsync(dto.DNI))
+            throw new ArgumentException($"El DNI {dto.DNI} ya está registrado.");
+
+
+        string passwordHash = BCrypt.Net.BCrypt.HashPassword(dto.Password);
+
+
+        var newStaff = new Staff
+        {
+            FuneralHomeId = dto.FuneralHomeId,
+            Name = dto.Name,
+            Email = dto.Email,
+            DNI = dto.DNI,
+            PasswordHash = passwordHash,
+            IsAdmin = dto.IsAdmin
+        };
+
+        return await _staffRepository.AddAsync(newStaff);
+    }
+
+    public async Task<bool> UpdateAsync(StaffUpdateDTO dto)
     {
-   
+        //existe el staff a actualizar
         var existing = await _staffRepository.GetByIdAsync(dto.Id);
         if (existing == null) return false;
 
-        
+        //si cambian las cosas que deben ser unicas valido que sean unicas
         if (existing.Email != dto.Email)
         {
             if (await _staffRepository.ExistsByEmailAsync(dto.Email, excludeId: dto.Id))
@@ -104,7 +120,7 @@ public class StaffService : IStaffService
                 throw new ArgumentException($"El DNI {dto.DNI} ya está en uso.");
         }
 
-        
+
         
         var updatedStaff = new Staff
         {
@@ -118,10 +134,10 @@ public class StaffService : IStaffService
         return await _staffRepository.UpdateAsync(updatedStaff);
     }
 
-    
+
     public async Task<bool> DeleteAsync(int id)
     {
-        
+
         return await _staffRepository.DeleteAsync(id);
     }
 
@@ -137,5 +153,5 @@ public class StaffService : IStaffService
         };
     }
 
-   
+
 }

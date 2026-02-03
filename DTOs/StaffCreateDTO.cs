@@ -4,8 +4,8 @@ namespace PERPETUUM.DTOs;
 
 public class StaffCreateDTO
 {
-    [Required(ErrorMessage = "El ID de la funeraria es obligatorio")]
-    public int FuneralHomeId { get; set; }
+   
+    public int? FuneralHomeId { get; set; }
 
     [Required(ErrorMessage = "El nombre es obligatorio")]
     [StringLength(100, ErrorMessage = "El nombre no puede superar los 100 caracteres")]

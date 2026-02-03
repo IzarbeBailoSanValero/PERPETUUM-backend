@@ -7,7 +7,7 @@ public class StaffUpdateDTO
    [Required(ErrorMessage = "El ID del empleado es obligatorio")]
     public int Id { get; set; }
 
-    // HEMOS ELIMINADO FuneralHomeId porque es mucho lío mover a un empleado de empresa, por eso no hereda del create
+    // he ELIMINADO FuneralHomeId porque es mucho lío mover a un empleado de empresa, por eso no hereda del create
 
     [Required(ErrorMessage = "El nombre es obligatorio")]
     [StringLength(100, ErrorMessage = "El nombre no puede superar los 100 caracteres")]
