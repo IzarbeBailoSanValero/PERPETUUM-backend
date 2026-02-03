@@ -146,7 +146,7 @@ namespace PERPETUUM.Services
 
 
 
-
+        //TODO: si sobra timepo llevarlo a policy
         //metodo creado por alejandro: 
         // ClaimsPrincipal es una clase que crea el porpio .net (un IEnumerable, un list) para que cuando recibe un token, lo descifra y guarda ahí las propiedades
         //para coger el rol: user.Claims.FirstOrDefault(condición) FirstOrDefault es un método LINQ que:  Devuelve el primer elemento que cumpla una condición

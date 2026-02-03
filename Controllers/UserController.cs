@@ -2,13 +2,14 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Authorization;
 using PERPETUUM.DTOs;
 using PERPETUUM.Services;
+using PERPETUUM.Models;
 using Microsoft.Extensions.Logging;
 
 namespace PERPETUUM.Controllers;
 
 [Route("api/[controller]")]
 [ApiController]
-[Authorize]
+[Authorize] //debe estar loggeado para cualquier endpoint
 public class UserController : ControllerBase
 {
     private readonly IUserService _userService;
@@ -30,10 +31,7 @@ public class UserController : ControllerBase
         try
         {
 
-            if (!_authService.HasAccessToResource(id, User))
-            {
-                return Forbid(); //error 403 --> Forbidden  : diferencia con 401 unautorized --> Un error 401 ocurre cuando hay un intento de acceso "no autorizado" en el servidor. un error 403 Forbidden ocurre cuando el servidor reconoce al usuario pero determina que no tiene los permisos necesarios.
-            }
+            if (!_authService.HasAccessToResource(id, User)) return Forbid(); //error 403 --> Forbidden  : diferencia con 401 unautorized --> Un error 401 ocurre cuando hay un intento de acceso "no autorizado" en el servidor. un error 403 Forbidden ocurre cuando el servidor reconoce al usuario pero determina que no tiene los permisos necesarios.
 
             var user = await _userService.GetUserProfileAsync(id);
 
@@ -64,12 +62,7 @@ public class UserController : ControllerBase
         {
             if (!ModelState.IsValid) return BadRequest(ModelState);
 
-
-            if (!_authService.HasAccessToResource(id, User))
-            {
-                return Forbid();
-            }
-
+            if (!_authService.HasAccessToResource(id, User)) return Forbid(); //error 403 --> Forbidden  : diferencia con 401 unautorized --> Un error 401 ocurre cuando hay un intento de acceso "no autorizado" en el servidor. un error 403 Forbidden ocurre cuando el servidor reconoce al usuario pero determina que no tiene los permisos necesarios.
 
             var updated = await _userService.UpdateUserProfileAsync(id, dto);
 
@@ -98,10 +91,8 @@ public class UserController : ControllerBase
     {
         try
         {
-            if (!_authService.HasAccessToResource(id, User))
-            {
-                return Forbid();
-            }
+            if (!_authService.HasAccessToResource(id, User)) return Forbid(); //error 403 --> Forbidden  : diferencia con 401 unautorized --> Un error 401 ocurre cuando hay un intento de acceso "no autorizado" en el servidor. un error 403 Forbidden ocurre cuando el servidor reconoce al usuario pero determina que no tiene los permisos necesarios.
+
             var deleted = await _userService.DeleteUserAccountAsync(id);
 
             if (!deleted) 
