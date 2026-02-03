@@ -11,12 +11,14 @@ namespace PERPETUUM.Services;
 public class MemorialGuardianService : IMemorialGuardianService
 {
     private readonly IMemorialGuardianRepository _repository;
+    private readonly IDeceasedRepository _deceasedRepository;
     private readonly ILogger<MemorialGuardianService> _logger;
 
-    public MemorialGuardianService(IMemorialGuardianRepository repository, ILogger<MemorialGuardianService> logger)
+    public MemorialGuardianService(IMemorialGuardianRepository repository, ILogger<MemorialGuardianService> logger, IDeceasedRepository deceasedRepository)
     {
         _repository = repository;
         _logger = logger;
+        _deceasedRepository = deceasedRepository;
     }
 
     public async Task<int> CreateGuardianAsync(GuardianCreateDTO dto)
@@ -49,7 +51,7 @@ public class MemorialGuardianService : IMemorialGuardianService
         var guardian = await _repository.GetByIdAsync(id);
         if (guardian == null) return null;
 
-        return new GuardianResponseDTO
+        var response = new GuardianResponseDTO
         {
             Id = guardian.Id,
             Name = guardian.Name,
@@ -57,5 +59,10 @@ public class MemorialGuardianService : IMemorialGuardianService
             PhoneNumber = guardian.PhoneNumber,
             FuneralHomeId = guardian.FuneralHomeId
         };
+
+        //añado lista de memoriales que gestionan
+        response.DeceasedList = await _deceasedRepository.GetByGuardianIdAsync(guardian.Id);
+
+        return response;
     }
 }

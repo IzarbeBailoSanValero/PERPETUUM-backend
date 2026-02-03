@@ -159,6 +159,54 @@ public class DeceasedRepository : IDeceasedRepository
         return deceased;
     }
 
+
+    public async Task<List<DeceasedSummaryDTO>> GetByGuardianIdAsync(int guardianId)
+{
+    var list = new List<DeceasedSummaryDTO>();
+
+    try
+    {
+        using (var connection = new MySqlConnection(_connectionString))
+        {
+            await connection.OpenAsync();
+
+            
+            string query = "SELECT Id, Name, PhotoURL, DeathDate FROM Deceased WHERE GuardianId = @GuardianId";
+
+            using (var command = new MySqlCommand(query, connection))
+            {
+                command.Parameters.AddWithValue("@GuardianId", guardianId);
+
+                using (var reader = await command.ExecuteReaderAsync())
+                {
+                    while (await reader.ReadAsync())
+                    {
+                        list.Add(new DeceasedSummaryDTO
+                        {
+                            Id = reader.GetInt32("Id"),
+                            Name = reader.GetString("Name"),
+                            PhotoURL = reader.IsDBNull(reader.GetOrdinal("PhotoURL")) ? null : reader.GetString("PhotoURL"),
+                            DeathDate = reader.GetDateTime("DeathDate")
+                        });
+                    }
+                }
+            }
+        }
+        return list;
+    }
+    catch (MySqlException ex)
+        {
+            _logger.LogError(ex, $"Error de MYSQL en GetByGuardianIdAsync: {ex.Message}");
+            throw;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, $"Error general en GetByGuardianIdAsync: {ex.Message}");
+            throw;
+        }
+
+}
+
     public async Task<int> AddAsync(Deceased deceased)
     {
         _logger.LogInformation("Iniciando AddAsync en Deceased");

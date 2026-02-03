@@ -7,6 +7,7 @@ public interface IDeceasedRepository
 {
     Task <List<Deceased>> GetAllAsync();
     Task <Deceased?> GetByIdAsync(int id);
+    Task<List<DeceasedSummaryDTO>> GetByGuardianIdAsync(int guardianId);
     Task <int> AddAsync (Deceased deceased);
     Task <bool> UpdateAsync(Deceased deceased);
     Task<bool> DeleteAsync(int id);
