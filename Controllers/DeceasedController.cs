@@ -2,14 +2,15 @@ using Microsoft.AspNetCore.Mvc;
 using PERPETUUM.Services;
 using PERPETUUM.DTOs;
 using PERPETUUM.Models;
+using System.Security.Claims;
 using Microsoft.Extensions.Logging;
 using Microsoft.AspNetCore.Authorization;
 
 namespace PERPETUUM.Controllers
 {
-    
+
     [ApiController]
-    [Route("api/[controller]")] 
+    [Route("api/[controller]")]
     [Authorize]
     public class DeceasedController : ControllerBase
     {
@@ -22,7 +23,7 @@ namespace PERPETUUM.Controllers
             _logger = logger;
         }
 
-        
+
         [HttpGet]
         [AllowAnonymous]
         public async Task<ActionResult<List<DeceasedResponseDTO>>> GetAllDeceased()
@@ -42,7 +43,7 @@ namespace PERPETUUM.Controllers
             }
         }
 
- 
+
 
         [HttpGet("{deceasedId}")]
         [AllowAnonymous]
@@ -69,7 +70,7 @@ namespace PERPETUUM.Controllers
             }
         }
 
-     
+
         [HttpGet("search")]
         [AllowAnonymous]
         public async Task<ActionResult<List<DeceasedResponseDTO>>> Search([FromQuery] DeceasedSearchDTO searchDTO)
@@ -86,7 +87,7 @@ namespace PERPETUUM.Controllers
             }
         }
 
-       
+
         [HttpPost]
         [Authorize(Roles = Roles.Admin + "," + Roles.Staff)]
         public async Task<ActionResult<DeceasedResponseDTO>> CreateDeceased([FromBody] DeceasedCreateDTO deceasedDTO)
@@ -99,20 +100,20 @@ namespace PERPETUUM.Controllers
 
             try
             {
-            
+
                 int newId = await _deceasedService.CreateDeceasedAsync(deceasedDTO);
 
                 //cojo elemento para devolverlo en el createAdAction
                 var createdDeceased = await _deceasedService.GetDeceasedProfileAsync(newId);
 
-                
+
                 return CreatedAtAction(nameof(GetDeceased), new { deceasedId = newId }, createdDeceased);
             }
             catch (ArgumentException ex)
             {
-                
+
                 _logger.LogWarning("Error respecto a las reglas de negocio en create");
-                return Conflict(ex.Message); 
+                return Conflict(ex.Message);
             }
             catch (Exception ex)
             {
@@ -121,12 +122,12 @@ namespace PERPETUUM.Controllers
             }
         }
 
-        
+
         [HttpPut("{deceasedId}")]
         [Authorize(Roles = Roles.Admin + "," + Roles.Staff + "," + Roles.Guardian)]
         public async Task<IActionResult> UpdateDeceased(int deceasedId, [FromBody] DeceasedUpdateDTO deceasedDto)
         {
-            //TODO: COMPROBAR QUE ES EL GUARDIAN DEL DIFUNTO, PARA QUE SOLO PUEDA BORRAR ESE
+
             if (!ModelState.IsValid)
             {
                 _logger.LogWarning("Fallo al validar difunto debido a un formato de datos enviados inválido.");
@@ -139,8 +140,66 @@ namespace PERPETUUM.Controllers
                 return BadRequest("No coincide el id del objeto a actualizar y el de la petición.");
             }
 
+
+
             try
             {
+
+                //cojo los datos del usuario peticionario
+                var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier);
+                if (userIdClaim == null) return Unauthorized();
+                var currentlyUserId = int.Parse(userIdClaim.Value);
+
+                //cojo al deceased
+                var deceased = await _deceasedService.GetDeceasedProfileAsync(deceasedId);
+                if (deceased == null)
+                {
+                    return NotFound($"No se encontró difunto con ID {deceasedId}.");
+                }
+
+                //permisos: admin?---> su guardian?
+                bool canUpdate = false;
+
+                //admin
+                if (User.IsInRole(Roles.Admin))
+                {
+                    canUpdate = true;
+                }
+                // staff de la misma funeraria
+                else if (User.IsInRole(Roles.Staff))
+                {
+                    var fhClaim = User.FindFirst("FuneralHomeId");
+                    
+                    if (fhClaim != null)
+                    {
+                        int staffFhId = int.Parse(fhClaim.Value);
+                        
+                       
+                        if (deceased.FuneralHomeId == staffFhId)
+                        {
+                            canUpdate = true;
+                        }
+                    }
+                }
+                //guardian
+                else if (User.IsInRole(Roles.Guardian))
+                {
+                    if (deceased.GuardianId == currentlyUserId)
+                    {
+                        canUpdate = true;
+                    }
+                }
+
+
+                if (!canUpdate)
+                {
+                    return Forbid(); // 403: Usuario logueado, pero sin permiso para ESTE recurso
+                }
+
+
+
+
+
                 bool hasBeenUpdated = await _deceasedService.UpdateDeceasedAsync(deceasedDto);
 
                 if (hasBeenUpdated)
@@ -170,7 +229,7 @@ namespace PERPETUUM.Controllers
         [Authorize(Roles = Roles.Admin + "," + Roles.Staff)] //si el familiar quiere borrar, deberá contactar con la funeraria o perpetuum
         public async Task<IActionResult> DeleteDeceased(int deceasedId)
         {
-            try 
+            try
             {
                 var hasBeenDeleted = await _deceasedService.DeleteDeceasedAsync(deceasedId);
 
@@ -183,12 +242,12 @@ namespace PERPETUUM.Controllers
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error interno al procesar delete deceased en controller"); 
+                _logger.LogError(ex, "Error interno al procesar delete deceased en controller");
                 return StatusCode(500, "Error interno al procesar petición");
             }
         }
 
-    
+
     }
 }
 

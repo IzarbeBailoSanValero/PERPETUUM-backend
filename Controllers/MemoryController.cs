@@ -4,9 +4,9 @@ using PERPETUUM.Models; //para utilizar los roles en la protección
 using PERPETUUM.Services;
 using Microsoft.AspNetCore.Authorization;
 
+using System.Security.Claims;
 namespace PERPETUUM.Controllers;
 
-using System.Security.Claims;
 
 [Route("api/[controller]")]
 [ApiController]
@@ -156,6 +156,7 @@ public class MemoryController : ControllerBase
                 if (!hasBeenUpdated) return NotFound($"No se encontró la memoria con ID {id}.");
 
                 return NoContent();
+                }
 
 
 

@@ -85,7 +85,7 @@ public class DeceasedRepository : IDeceasedRepository
                 await connection.OpenAsync();
 
                 string query = @"
-                SELECT Id, FuneralHomeId, GuardianId, StaffId, Dni, Name, Epitaph, Biography, PhotoURL, BirthDate, DeathDate 
+                SELECT Id, GuardianId, FuneralHomeId, GuardianId, StaffId, Dni, Name, Epitaph, Biography, PhotoURL, BirthDate, DeathDate 
                 FROM Deceased 
                 WHERE Id = @Id;
 
