@@ -7,6 +7,7 @@ public interface IMemoryService
 {
     // Obtener memorias --> parametro para filtrar si solo aprobadas o todas
     Task<List<MemoryResponseDTO>> GetByDeceasedIdAsync(int deceasedId, bool onlyApproved);
+    Task<MemoryResponseDTO?> GetByIdAsync(int id);
     
     Task<int> AddMemoryAsync(MemoryCreateDTO dto , int currentUserId);
     

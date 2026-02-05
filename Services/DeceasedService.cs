@@ -52,6 +52,15 @@ public class DeceasedService : IDeceasedService
     return dto;
 }
 
+
+
+
+public async Task<List<DeceasedSummaryDTO>> GetByGuardianIdAsync(int guardianId)
+{
+    _logger.LogInformation($"Service: Obteniendo lista de difuntos por guardián para el guardian con id {guardianId}");
+    return await _repository.GetByGuardianIdAsync(guardianId);
+}
+
     public async Task<int> CreateDeceasedAsync(DeceasedCreateDTO dto)
     {
         ValidateDates(dto.BirthDate, dto.DeathDate);

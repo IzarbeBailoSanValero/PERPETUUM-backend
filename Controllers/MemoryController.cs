@@ -15,11 +15,13 @@ public class MemoryController : ControllerBase
 {
     private readonly IMemoryService _memoryService;
     private readonly ILogger<MemoryController> _logger;
+    private readonly IDeceasedService _deceasedService;
 
-    public MemoryController(IMemoryService service, ILogger<MemoryController> logger)
+    public MemoryController(IMemoryService service, ILogger<MemoryController> logger, IMemorialGuardianService guardianService, IDeceasedService deceasedService)
     {
         _memoryService = service;
         _logger = logger;
+        _deceasedService = deceasedService;
     }
 
 
@@ -56,46 +58,46 @@ public class MemoryController : ControllerBase
             //cojo id de los claims --> el objeto User es una propiedad de ControllerBase que representa al usuario autenticado que hace la petición, por eso tengo acceso a él.
             var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier);
 
-            if(userIdClaim == null) return Unauthorized(); //problema al obtener claim --> problema con el token
+            if (userIdClaim == null) return Unauthorized(); //problema al obtener claim --> problema con el token
 
             //como el vlaor de claim llega como string xq JSON, hay que parsearlo a string
             //no puedo hacer cast directo (int) porque no son tipos compatibles
-           int currentUserId = int.Parse(userIdClaim.Value);
+            int currentUserId = int.Parse(userIdClaim.Value);
 
 
 
-            var newId = await _memoryService.AddMemoryAsync(dto , currentUserId);
+            var newId = await _memoryService.AddMemoryAsync(dto, currentUserId);
             return CreatedAtAction(nameof(GetByDeceased), new { deceasedId = dto.DeceasedId }, new { id = newId });
-           
+
 
 
         }
         catch (ArgumentException ex)
-            {
-                
-                _logger.LogWarning("Error respecto a las reglas de negocio en memory");
-                return Conflict(ex.Message); 
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Error interno al procesar create deceased en controller");
-                return StatusCode(500, "Error interno al procesar petición");
-            }
+        {
+
+            _logger.LogWarning("Error respecto a las reglas de negocio en memory");
+            return Conflict(ex.Message);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error interno al procesar create deceased en controller");
+            return StatusCode(500, "Error interno al procesar petición");
+        }
     }
 
 
-//para utilizar varios hay ue concatenar strings
-[HttpPut("{id}/status")]
-[Authorize(Roles = Roles.Admin + "," + Roles.Guardian)]
-//TODO: COMPROBAR QUE el Guardián es EL guardián de ESTE difunto.
+    //para utilizar varios hay ue concatenar strings
+    [HttpPut("{id}/status")]
+    [Authorize(Roles = Roles.Admin + "," + Roles.Guardian)]
+    //TODO: COMPROBAR QUE el Guardián es EL guardián de ESTE difunto.
     public async Task<ActionResult> UpdateStatus(int id, [FromBody] int statusInt)
     {
-          if (!ModelState.IsValid)
+        if (!ModelState.IsValid)
         {
             _logger.LogWarning("Fallo al validar memoria debido a un formato de datos enviados inválido.");
             return BadRequest(ModelState);
         }
-        
+
         try
         {
             var status = (MemoryStatus)statusInt;
@@ -103,7 +105,7 @@ public class MemoryController : ControllerBase
 
             if (!hasBeenUpdated) return NotFound($"No se encontró la memoria con ID {id}.");
 
-            return NoContent(); 
+            return NoContent();
         }
         catch (ArgumentException ex)
         {
@@ -118,11 +120,55 @@ public class MemoryController : ControllerBase
     }
 
 
-[HttpDelete("{id}")]
-//TODO: ARREGLAR ESTE, ESTÁ MAL --> COMO TENGO QUE COMPROBAR QUE ESTÉ ABIERTO A ADMIN, GUARDIAN O AUTOR HAGO LA COMPROBACIÓN DENTRO PARA VER QUE EL USER ES EL AUTOR. LO PONGO COMO AUTHORIZED, ABIERTO A LOS LOGGEADOS
+    [HttpDelete("{id}")]
+    // LO PONGO COMO AUTHORIZED, ABIERTO A LOS LOGGEADOS, comprobación dentro xq son todos con condiciones
     public async Task<ActionResult> Delete(int id)
     {
-        try 
+        try
+        {
+            //recupero la memoria para tener los datos para filtrado
+            var memoryDTO = await _memoryService.GetByIdAsync(id);
+
+            //cojo los datos del usuario peticionario
+            var currentlyUserId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier).Value);
+
+            if (memoryDTO == null)
+            {
+                _logger.LogWarning($"Intento de eliminación de memoria con id {id} que no existe.");
+                return NotFound();
+            }
+
+            //permisos: admin? --> su autor? ---> su guardian?
+            bool canDelete = false;
+
+            //admin
+            if (User.IsInRole(Roles.Admin)) canDelete = true;
+            //author
+            else if (memoryDTO.UserId == currentlyUserId) canDelete = true;
+            //guardian
+            else if (User.IsInRole(Roles.Guardian))
+            {
+
+                //traigo sus difuntos a cargo 
+                var myDeceasedList = await _deceasedService.GetByGuardianIdAsync(currentlyUserId);
+
+                if(myDeceasedList != null)
+            {
+               
+                foreach (var deceased in myDeceasedList)
+                {
+                    if (deceased.Id == memoryDTO.DeceasedId)
+                    {
+                        canDelete = true;
+                        break;
+                    }
+                } 
+            }
+
+
+            }
+
+            if (canDelete)
             {
                 var hasBeenDeleted = await _memoryService.DeleteMemoryAsync(id);
 
@@ -133,11 +179,15 @@ public class MemoryController : ControllerBase
                 }
                 return NoContent();
             }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Error interno al procesar delete memory en controller"); 
-                return StatusCode(500, "Error interno al procesar petición");
-            }
+
+            return Forbid();
+
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error interno al procesar delete memory en controller");
+            return StatusCode(500, "Error interno al procesar petición");
+        }
     }
 
 }

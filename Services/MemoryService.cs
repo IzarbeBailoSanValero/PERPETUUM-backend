@@ -18,7 +18,7 @@ public class MemoryService : IMemoryService
 
     public async Task<List<MemoryResponseDTO>> GetByDeceasedIdAsync(int deceasedId, bool onlyApproved)
     {
-        _logger.LogInformation( $"Service: Obteniendo memorias para difunto {deceasedId}. Solo aprobadas: {onlyApproved}" );
+        _logger.LogInformation($"Service: Obteniendo memorias para difunto {deceasedId}. Solo aprobadas: {onlyApproved}");
 
         List<Memory> memories;
 
@@ -42,8 +42,25 @@ public class MemoryService : IMemoryService
     }
 
 
+
+    public async Task<MemoryResponseDTO?> GetByIdAsync(int id)
+    {
+        var memory = await _repository.GetByIdAsync(id);
+        if (memory == null) return null;
+        return MapToDTO(memory);
+    }
+
+
+
+
+
+
+
+
+
+
     //no infiero el tipo en el backend porque le usuario debe poder elegir anécdota vs condolencia
-    public async Task<int> AddMemoryAsync(MemoryCreateDTO dto , int currentUserId)
+    public async Task<int> AddMemoryAsync(MemoryCreateDTO dto, int currentUserId)
     {
         //valido que si es de tipo condolencia o anécdota exista texto
         if ((dto.Type == 1 || dto.Type == 2) && string.IsNullOrWhiteSpace(dto.TextContent))
@@ -62,7 +79,7 @@ public class MemoryService : IMemoryService
         {
             DeceasedId = dto.DeceasedId,
             UserId = currentUserId,
-            Type = (MemoryType) dto.Type, // en el model es MemoryType, en el dtocreate es un int
+            Type = (MemoryType)dto.Type, // en el model es MemoryType, en el dtocreate es un int
             Status = MemoryStatus.Pending, //por defecto pending
             TextContent = dto.TextContent,
             MediaURL = dto.MediaURL,
@@ -77,11 +94,11 @@ public class MemoryService : IMemoryService
 
     }
 
-    public async  Task<bool> DeleteMemoryAsync(int id)
+    public async Task<bool> DeleteMemoryAsync(int id)
     {
-       _logger.LogInformation($"Service: Ejecutando borrado  de memoria {id}");
+        _logger.LogInformation($"Service: Ejecutando borrado  de memoria {id}");
 
-       var existing = await _repository.GetByIdAsync(id);
+        var existing = await _repository.GetByIdAsync(id);
         if (existing == null) return false;
 
         return await _repository.DeleteAsync(id);
@@ -91,7 +108,7 @@ public class MemoryService : IMemoryService
     public async Task<bool> UpdateStatusAsync(int id, MemoryStatus status)
     {
         _logger.LogInformation($"Service: Actualizando estado de memoria {id} a {status}");
-     
+
         var existing = await _repository.GetByIdAsync(id);
         if (existing == null) return false;
 
@@ -99,14 +116,14 @@ public class MemoryService : IMemoryService
     }
 
 
-private MemoryResponseDTO MapToDTO(Memory m)
+    private MemoryResponseDTO MapToDTO(Memory m)
     {
         return new MemoryResponseDTO
         {
             Id = m.Id,
             CreatedDate = m.CreatedDate,
             Type = m.Type.ToString(),  //transforma el enum de numero a estado     
-            Status = m.Status.ToString(),   
+            Status = m.Status.ToString(),
             TextContent = m.TextContent,
             MediaURL = m.MediaURL,
             AuthorRelation = m.AuthorRelation,
