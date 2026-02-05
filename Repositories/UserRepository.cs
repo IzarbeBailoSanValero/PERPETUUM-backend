@@ -1,7 +1,6 @@
 using MySqlConnector;
 using PERPETUUM.Models;
-using Microsoft.Extensions.Logging;
-using System.Data; // Necesario para manejar DBNull
+
 
 namespace PERPETUUM.Repositories;
 

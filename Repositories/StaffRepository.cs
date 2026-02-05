@@ -1,6 +1,5 @@
 using MySqlConnector;
 using PERPETUUM.Models;
-using Microsoft.Extensions.Logging;
 using System.Text;
 
 namespace PERPETUUM.Repositories;
@@ -139,7 +138,6 @@ public class StaffRepository : IStaffRepository
             //si funeralhome es null (empleado admin) gestiono el null de la base de datos
             // uso de ?? --> si el valor de izda es null usa el de la dcha 
             command.Parameters.AddWithValue("@FuneralHomeId", staff.FuneralHomeId ?? (object)DBNull.Value);
-            command.Parameters.AddWithValue("@FuneralHomeId", staff.FuneralHomeId);
             command.Parameters.AddWithValue("@Name", staff.Name);
             command.Parameters.AddWithValue("@Email", staff.Email);
             command.Parameters.AddWithValue("@DNI", staff.DNI);

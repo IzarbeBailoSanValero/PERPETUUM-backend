@@ -89,7 +89,7 @@ namespace PERPETUUM.Controllers
             }
         }
 
- //FILTROS validacion mejorados con IA
+        //FILTROS validacion mejorados con IA
 
         [HttpPost]
         [Authorize(Roles = Roles.Admin + "," + Roles.Staff)]
@@ -103,14 +103,14 @@ namespace PERPETUUM.Controllers
 
             try
             {
-               
+
                 if (User.IsInRole(Roles.Staff))
                 {
                     var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier);
                     if (userIdClaim == null) return Unauthorized();
                     var currentUserId = int.Parse(userIdClaim.Value);
 
-                    
+
                     var staffProfile = await _staffService.GetByIdAsync(currentUserId);
 
                     if (staffProfile == null || staffProfile.FuneralHomeId != deceasedDTO.FuneralHomeId)
@@ -120,7 +120,7 @@ namespace PERPETUUM.Controllers
                     }
                 }
 
-                
+
                 int newId = await _deceasedService.CreateDeceasedAsync(deceasedDTO);
 
                 //cojo elemento para devolverlo en el createAdAction
@@ -186,7 +186,7 @@ namespace PERPETUUM.Controllers
                     canUpdate = true;
                 }
                 // staff de la misma funeraria
-               else if (User.IsInRole(Roles.Staff))
+                else if (User.IsInRole(Roles.Staff))
                 {
                     var staffProfile = await _staffService.GetByIdAsync(currentlyUserId);
                     if (staffProfile != null && staffProfile.FuneralHomeId == deceased.FuneralHomeId)
@@ -240,8 +240,8 @@ namespace PERPETUUM.Controllers
 
         [HttpDelete("{deceasedId}")]
         [Authorize(Roles = Roles.Admin + "," + Roles.Staff)] //si el familiar quiere borrar, deberá contactar con la funeraria o perpetuum. Si es staff, debe ser de la misma funeraria
-    
-            public async Task<IActionResult> DeleteDeceased(int deceasedId)
+
+        public async Task<IActionResult> DeleteDeceased(int deceasedId)
         {
             try
             {
@@ -256,7 +256,7 @@ namespace PERPETUUM.Controllers
                 {
                     canDelete = true;
                 }
-                
+
                 else if (User.IsInRole(Roles.Staff))
                 {
                     var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier);
@@ -264,7 +264,7 @@ namespace PERPETUUM.Controllers
                     var currentUserId = int.Parse(userIdClaim.Value);
 
                     var staffProfile = await _staffService.GetByIdAsync(currentUserId);
-                    
+
                     if (staffProfile != null && staffProfile.FuneralHomeId == deceased.FuneralHomeId)
                     {
                         canDelete = true;

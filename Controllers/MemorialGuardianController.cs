@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Authorization;
 using PERPETUUM.DTOs;
 using PERPETUUM.Services;
 using PERPETUUM.Models;
+using System.Security.Claims;
 
 
 namespace PERPETUUM.Controllers;
@@ -15,10 +16,12 @@ public class MemorialGuardianController : ControllerBase
     private readonly IMemorialGuardianService _service;
     private readonly ILogger<MemorialGuardianController> _logger;
     private readonly IAuthService _authService;
+     private readonly IStaffService _staffService;
 
-    public MemorialGuardianController(IMemorialGuardianService service, ILogger<MemorialGuardianController> logger, IAuthService authService)
+    public MemorialGuardianController(IMemorialGuardianService service, ILogger<MemorialGuardianController> logger, IAuthService authService,IStaffService staffService)
     {
         _service = service;
+         _staffService = staffService;
         _logger = logger;
         _authService = authService;
     }
@@ -29,29 +32,41 @@ public class MemorialGuardianController : ControllerBase
     {
         try
         {
-            //3º capa: si es staff --> debe pertenecer a la misma funeraria
-            //buscamos el funeralhomeId del guardian para compararlo con el de la funeraria peticionaria
+            //recupero guardian
             var guardian = await _service.GetGuardianByIdAsync(id);
             if (guardian == null) return NotFound();
+
+
+            //3º capa: si es staff --> debe pertenecer a la misma funeraria
+            //buscamos el funeralhomeId del guardian para compararlo con el de la funeraria peticionaria
+           
            
             if (User.IsInRole(Roles.Staff))
             {
-                 //cojo su fhId y lo comparo con el del recurso
-                var funeralHomeIdFromClaim = User.FindFirst("FuneralHomeId");
-                if (funeralHomeIdFromClaim == null) return Unauthorized();
+                var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier);
+                if (userIdClaim == null) return Unauthorized();
+                int currentUserId = int.Parse(userIdClaim.Value);
 
-                if(funeralHomeIdFromClaim.Value != guardian.FuneralHomeId.ToString()) return Forbid();//comparo con el json --> tostring
+                //perfil del empleado
+                var staffProfile = await _staffService.GetByIdAsync(currentUserId);
+
+                // Si el empleado no existe o su funeraria no coincide 
+                if (staffProfile == null || staffProfile.FuneralHomeId != guardian.FuneralHomeId)
+                {
+                    return Forbid(); 
+                }
             }
             
-            else //es guardian --> si no pasa la criba admin/himself lo bloqueamos
+           else if (User.IsInRole(Roles.Guardian))
             {
-               if (!_authService.HasAccessToResource(id, User))
+                
+                if (!_authService.HasAccessToResource(id, User))
                 {
-                    return Forbid(); //no puede ver perfiles no suyos
+                    return Forbid(); //guardian intenta ver perfil de otro guardian
                 } 
             }
             
-            //si ha pasado todos los filtros, retornar
+            //ha pasado filtros
             return Ok(guardian);
         }
 
@@ -73,9 +88,27 @@ public class MemorialGuardianController : ControllerBase
         {
             if (!ModelState.IsValid) return BadRequest(ModelState);
 
+            //comprobar que un staff no pueda crear un guardian para otra funeraria (mejora IA)
+                if (User.IsInRole(Roles.Staff))
+                {
+                    var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier);
+                    if (userIdClaim == null) return Unauthorized();
+                    int currentUserId = int.Parse(userIdClaim.Value);
+    
+                    //perfil del empleado
+                    var staffProfile = await _staffService.GetByIdAsync(currentUserId);
+    
+                    // Si el empleado no existe o su funeraria no coincide 
+                    if (staffProfile == null || staffProfile.FuneralHomeId != dto.FuneralHomeId)
+                    {
+                        return Forbid(); 
+                    }
+                }
+
             var id = await _service.CreateGuardianAsync(dto);
             return CreatedAtAction(nameof(GetById), new { id }, new { id });
         }
+        
         catch (ArgumentException ex)
         {
             return BadRequest(new { message = ex.Message });

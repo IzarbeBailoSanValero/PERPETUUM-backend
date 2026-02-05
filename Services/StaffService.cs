@@ -122,7 +122,7 @@ public class StaffService : IStaffService
         }
 
 
-        
+
         var updatedStaff = new Staff
         {
             Id = dto.Id,
@@ -138,6 +138,8 @@ public class StaffService : IStaffService
 
     public async Task<bool> DeleteAsync(int id)
     {
+        var existing = await _staffRepository.GetByIdAsync(id);
+        if (existing == null) return false;
 
         return await _staffRepository.DeleteAsync(id);
     }

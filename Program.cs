@@ -3,7 +3,6 @@
 /*program.cs se encarga de: punto de entrada de la api + iniciar + conectar + inyectar + arrancar*/
 using PERPETUUM.Repositories; //para añadir a adscoped
 using PERPETUUM.Services; //para añadir a addscoped using System;
-using MySqlConnector;
 using Serilog;
 //JWT::: dependencias para 
 using Microsoft.AspNetCore.Authentication.JwtBearer;
@@ -126,12 +125,13 @@ if (app.Environment.IsDevelopment()) {
     }
 
 
+//JWT:::
+app.UseAuthorization();
+app.UseAuthentication();
+
 //añadir rutas a los controllers
 app.MapControllers();
 
-//JWT:::
-app.UseAuthentication();
-app.UseAuthorization();
 
 //pone en marcha nuestra app a partir de nuestra config y empieza a escuchar peticiones
 app.Run();      
