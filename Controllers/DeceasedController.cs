@@ -16,10 +16,12 @@ namespace PERPETUUM.Controllers
     {
         private readonly IDeceasedService _deceasedService;
         private readonly ILogger<DeceasedController> _logger;
+        private readonly IStaffService _staffService;
 
-        public DeceasedController(IDeceasedService deceasedService, ILogger<DeceasedController> logger)
+        public DeceasedController(IDeceasedService deceasedService, ILogger<DeceasedController> logger, IStaffService staffService)
         {
             _deceasedService = deceasedService;
+            _staffService = staffService;
             _logger = logger;
         }
 
@@ -87,6 +89,7 @@ namespace PERPETUUM.Controllers
             }
         }
 
+ //FILTROS validacion mejorados con IA
 
         [HttpPost]
         [Authorize(Roles = Roles.Admin + "," + Roles.Staff)]
@@ -100,7 +103,24 @@ namespace PERPETUUM.Controllers
 
             try
             {
+               
+                if (User.IsInRole(Roles.Staff))
+                {
+                    var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier);
+                    if (userIdClaim == null) return Unauthorized();
+                    var currentUserId = int.Parse(userIdClaim.Value);
 
+                    
+                    var staffProfile = await _staffService.GetByIdAsync(currentUserId);
+
+                    if (staffProfile == null || staffProfile.FuneralHomeId != deceasedDTO.FuneralHomeId)
+                    {
+                        _logger.LogWarning($"Staff {currentUserId} intentó crear un difunto para la Funeraria {deceasedDTO.FuneralHomeId} sin permiso.");
+                        return Forbid(); // 403 Forbidden
+                    }
+                }
+
+                
                 int newId = await _deceasedService.CreateDeceasedAsync(deceasedDTO);
 
                 //cojo elemento para devolverlo en el createAdAction
@@ -166,19 +186,12 @@ namespace PERPETUUM.Controllers
                     canUpdate = true;
                 }
                 // staff de la misma funeraria
-                else if (User.IsInRole(Roles.Staff))
+               else if (User.IsInRole(Roles.Staff))
                 {
-                    var fhClaim = User.FindFirst("FuneralHomeId");
-                    
-                    if (fhClaim != null)
+                    var staffProfile = await _staffService.GetByIdAsync(currentlyUserId);
+                    if (staffProfile != null && staffProfile.FuneralHomeId == deceased.FuneralHomeId)
                     {
-                        int staffFhId = int.Parse(fhClaim.Value);
-                        
-                       
-                        if (deceased.FuneralHomeId == staffFhId)
-                        {
-                            canUpdate = true;
-                        }
+                        canUpdate = true;
                     }
                 }
                 //guardian
@@ -226,16 +239,46 @@ namespace PERPETUUM.Controllers
         }
 
         [HttpDelete("{deceasedId}")]
-        [Authorize(Roles = Roles.Admin + "," + Roles.Staff)] //si el familiar quiere borrar, deberá contactar con la funeraria o perpetuum
-        public async Task<IActionResult> DeleteDeceased(int deceasedId)
+        [Authorize(Roles = Roles.Admin + "," + Roles.Staff)] //si el familiar quiere borrar, deberá contactar con la funeraria o perpetuum. Si es staff, debe ser de la misma funeraria
+    
+            public async Task<IActionResult> DeleteDeceased(int deceasedId)
         {
             try
             {
+                // difunto
+                var deceased = await _deceasedService.GetDeceasedProfileAsync(deceasedId);
+                if (deceased == null) return NotFound();
+
+                //gestión de permisos: admin -->staff misma funeraria
+                bool canDelete = false;
+
+                if (User.IsInRole(Roles.Admin))
+                {
+                    canDelete = true;
+                }
+                
+                else if (User.IsInRole(Roles.Staff))
+                {
+                    var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier);
+                    if (userIdClaim == null) return Unauthorized();
+                    var currentUserId = int.Parse(userIdClaim.Value);
+
+                    var staffProfile = await _staffService.GetByIdAsync(currentUserId);
+                    
+                    if (staffProfile != null && staffProfile.FuneralHomeId == deceased.FuneralHomeId)
+                    {
+                        canDelete = true;
+                    }
+                }
+
+                if (!canDelete) return Forbid();
+
+                // ejecución del borrado
                 var hasBeenDeleted = await _deceasedService.DeleteDeceasedAsync(deceasedId);
 
                 if (!hasBeenDeleted)
                 {
-                    _logger.LogWarning($"Fracaso al eliminar el difunto con id {deceasedId}, no encontrado en base de datos");
+                    _logger.LogWarning($"Fracaso al eliminar el difunto con id {deceasedId}");
                     return NotFound();
                 }
                 return NoContent();
@@ -250,5 +293,3 @@ namespace PERPETUUM.Controllers
 
     }
 }
-
-//TODO: SI DA TIEMPO: EL TRABAJADOR DEBERÍA SACAR EL ID DE SU FUNERARIA PARA AL CREACIÓN DEL DIFUNTO Y MEMORIALGUARDIAN A TRAVES DE SU JWTOKEN. COMPROBAR QUE ESTÁ ASÍ O SE PUEDE

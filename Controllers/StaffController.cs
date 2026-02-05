@@ -3,6 +3,7 @@ using PERPETUUM.Services;
 using PERPETUUM.DTOs;
 using PERPETUUM.Models;
 using Microsoft.AspNetCore.Authorization;
+using System.Security.Claims;
 
 namespace PERPETUUM.Controllers;
 
@@ -20,10 +21,10 @@ public class StaffController : ControllerBase
         _service = service;
         _logger = logger;
         _authService = authService;
-        
+
     }
 
-    
+
     // GET: api/staff/5
     [HttpGet("{id}")]
     [Authorize(Roles = Roles.Admin + "," + Roles.Staff)]
@@ -34,7 +35,7 @@ public class StaffController : ControllerBase
         {
             if (!_authService.HasAccessToResource(id, User)) return Forbid(); //3º seguridad, una vez que es seguro que se ha metido un admin o staff, podemos ver por id
             var result = await _service.GetByIdAsync(id);
-            if (result == null) 
+            if (result == null)
                 return NotFound(new { message = $"No se encontró el empleado con ID {id}" });
 
             return Ok(result);
@@ -46,18 +47,52 @@ public class StaffController : ControllerBase
         }
     }
 
-    
+
     [HttpGet("funeralhome/{funeralHomeId}")]
     [Authorize(Roles = Roles.Admin + "," + Roles.Staff)] //un trabajador puede ver a sus compis a grandes rasgos
     public async Task<ActionResult<List<StaffResponseDTO>>> GetByFuneralHome(int funeralHomeId)
     {
         try
         {
-            //TODO: // Aquí podríamos validar que el Staff pertenezca a esa funeraria mirando su Token
-            
+
+           
+            var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier);
+            if (userIdClaim == null) return Unauthorized();
+            int currentUserId = int.Parse(userIdClaim.Value);
+
+            //permisos: admin?---> su guardian?
+            bool canAccess = false;
+
+            //admin
+            if (User.IsInRole(Roles.Admin))
+            {
+                canAccess = true;
+            }
+
+            // staff de la misma funeraria
+           
+            else if (User.IsInRole(Roles.Staff))
+            { 
+                var currentStaffProfile = await _service.GetByIdAsync(currentUserId);
+
+               if (currentStaffProfile != null)
+                {
+                    
+                    if (currentStaffProfile.FuneralHomeId == funeralHomeId)
+                    {
+                        canAccess = true;
+                    }
+                }
+            }
+            if (!canAccess)
+            {
+                return Forbid(); // 403: No tienes permiso para ver esta empresa
+            }
+
+
             var list = await _service.GetByFuneralHomeIdAsync(funeralHomeId);
-            
-            
+
+
             if (list == null)
                 return NotFound(new { message = $"La funeraria {funeralHomeId} no existe." });
 
@@ -82,13 +117,13 @@ public class StaffController : ControllerBase
         {
             int newId = await _service.CreateAsync(dto);
             var createdItem = await _service.GetByIdAsync(newId);
-            
+
             return CreatedAtAction(nameof(GetById), new { id = newId }, createdItem);
         }
         catch (ArgumentException ex)
         {
             _logger.LogWarning($"Conflicto al crear staff: {ex.Message}");
-            return Conflict(new { message = ex.Message }); 
+            return Conflict(new { message = ex.Message });
         }
         catch (Exception ex)
         {
@@ -97,21 +132,21 @@ public class StaffController : ControllerBase
         }
     }
 
-    
+
     [HttpPut("{id}")]
     [Authorize(Roles = Roles.Admin)]
     public async Task<IActionResult> Update(int id, [FromBody] StaffUpdateDTO dto)
     {
-        if (id != dto.Id) 
+        if (id != dto.Id)
             return BadRequest(new { message = "El ID de la URL no coincide con el cuerpo." });
-        
+
         if (!ModelState.IsValid) return BadRequest(ModelState);
 
         try
         {
             bool updated = await _service.UpdateAsync(dto);
 
-            if (!updated) 
+            if (!updated)
                 return NotFound(new { message = $"No se encontró el empleado con ID {id}." });
 
             return NoContent();
@@ -128,7 +163,7 @@ public class StaffController : ControllerBase
         }
     }
 
-    
+
     [HttpDelete("{id}")]
     [Authorize(Roles = Roles.Admin)]
     public async Task<IActionResult> Delete(int id)
@@ -137,7 +172,7 @@ public class StaffController : ControllerBase
         {
             bool deleted = await _service.DeleteAsync(id);
 
-            if (!deleted) 
+            if (!deleted)
                 return NotFound(new { message = $"No se encontró el empleado con ID {id}." });
 
             return NoContent();
