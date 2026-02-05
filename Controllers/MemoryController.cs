@@ -89,7 +89,6 @@ public class MemoryController : ControllerBase
     //para utilizar varios hay ue concatenar strings
     [HttpPut("{id}/status")]
     [Authorize(Roles = Roles.Admin + "," + Roles.Guardian)]
-    //TODO: COMPROBAR QUE el Guardián es EL guardián de ESTE difunto.
     public async Task<ActionResult> UpdateStatus(int id, [FromBody] int statusInt)
     {
         if (!ModelState.IsValid)
@@ -100,13 +99,67 @@ public class MemoryController : ControllerBase
 
         try
         {
-            var status = (MemoryStatus)statusInt;
-            bool hasBeenUpdated = await _memoryService.UpdateStatusAsync(id, status);
+            //recupero la memoria para tener los datos para filtrado
+            var memoryDTO = await _memoryService.GetByIdAsync(id);
 
-            if (!hasBeenUpdated) return NotFound($"No se encontró la memoria con ID {id}.");
+            if (memoryDTO == null)
+            {
+                return NotFound($"No se encontró la memoria con ID {id}.");
+            }
 
-            return NoContent();
-        }
+            //cojo los datos del usuario peticionario
+            var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier);
+            if (userIdClaim == null) return Unauthorized();
+            var currentlyUserId = int.Parse(userIdClaim.Value);
+
+            //permisos: admin?---> su guardian?
+            bool canUpdate = false;
+
+
+
+            //admin
+            if (User.IsInRole(Roles.Admin))
+            {
+                canUpdate = true;
+            }
+            //guardian
+            else if (User.IsInRole(Roles.Guardian))
+            {
+
+                //traigo sus difuntos a cargo 
+                var myDeceasedList = await _deceasedService.GetByGuardianIdAsync(currentlyUserId);
+
+                if (myDeceasedList != null)
+                {
+
+                    foreach (var deceased in myDeceasedList)
+                    {
+                        if (deceased.Id == memoryDTO.DeceasedId)
+                        {
+                            canUpdate = true;
+                            break;
+                        }
+                    }
+                }
+
+          }
+
+                if (!canUpdate)
+                {
+                    return Forbid();
+                }
+
+                var status = (MemoryStatus)statusInt;
+
+                bool hasBeenUpdated = await _memoryService.UpdateStatusAsync(id, status);
+
+                if (!hasBeenUpdated) return NotFound($"No se encontró la memoria con ID {id}.");
+
+                return NoContent();
+
+
+
+  
         catch (ArgumentException ex)
         {
             _logger.LogWarning("Error respecto a las reglas de negocio en memory: {Message}", ex.Message);
@@ -130,7 +183,9 @@ public class MemoryController : ControllerBase
             var memoryDTO = await _memoryService.GetByIdAsync(id);
 
             //cojo los datos del usuario peticionario
-            var currentlyUserId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier).Value);
+            var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier);
+            if (userIdClaim == null) return Unauthorized();
+            var currentlyUserId = int.Parse(userIdClaim.Value);
 
             if (memoryDTO == null)
             {
@@ -152,35 +207,36 @@ public class MemoryController : ControllerBase
                 //traigo sus difuntos a cargo 
                 var myDeceasedList = await _deceasedService.GetByGuardianIdAsync(currentlyUserId);
 
-                if(myDeceasedList != null)
-            {
-               
-                foreach (var deceased in myDeceasedList)
+                if (myDeceasedList != null)
                 {
-                    if (deceased.Id == memoryDTO.DeceasedId)
+
+                    foreach (var deceased in myDeceasedList)
                     {
-                        canDelete = true;
-                        break;
+                        if (deceased.Id == memoryDTO.DeceasedId)
+                        {
+                            canDelete = true;
+                            break;
+                        }
                     }
-                } 
-            }
-
-
-            }
-
-            if (canDelete)
-            {
-                var hasBeenDeleted = await _memoryService.DeleteMemoryAsync(id);
-
-                if (!hasBeenDeleted)
-                {
-                    _logger.LogWarning($"Fracaso al eliminar memoria con id {id}, no encontrado en base de datos");
-                    return NotFound();
                 }
-                return NoContent();
+
+
             }
 
-            return Forbid();
+            if (!canDelete)
+            {
+                return Forbid();
+            }
+
+            var hasBeenDeleted = await _memoryService.DeleteMemoryAsync(id);
+
+            if (!hasBeenDeleted)
+            {
+                _logger.LogWarning($"Fracaso al eliminar memoria con id {id}, no encontrado en base de datos");
+                return NotFound();
+            }
+            return NoContent();
+
 
         }
         catch (Exception ex)
