@@ -15,6 +15,18 @@ using Microsoft.OpenApi.Models;
 var builder = WebApplication.CreateBuilder(args);
 
 
+//registro cors --> creo una política que permite todas las peticiones
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy("PermitirTodo", policy =>
+    {
+        policy.AllowAnyOrigin()
+              .AllowAnyHeader()
+              .AllowAnyMethod();
+    });
+});
+
+
 
 // SERILOG:::
 // Definimos que queremos escribir en consola y en un archivo
@@ -118,6 +130,9 @@ builder.Services.AddSwaggerGen(opt => //le dice a swagger que usamos jwt con est
 // construye app con la configuración creada.
 var app = builder.Build();  
 
+//habilito la política de cors que he registrado
+app.UseCors("PermitirTodo");
+
 //SWAGGER:::
 if (app.Environment.IsDevelopment()) { 
     app.UseSwagger(); 
@@ -126,8 +141,8 @@ if (app.Environment.IsDevelopment()) {
 
 
 //JWT:::
-app.UseAuthorization();
 app.UseAuthentication();
+app.UseAuthorization();
 
 //añadir rutas a los controllers
 app.MapControllers();
