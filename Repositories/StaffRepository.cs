@@ -298,7 +298,7 @@ public class StaffRepository : IStaffRepository
             Email = reader.GetString("Email"),
             PasswordHash = reader.GetString("PasswordHash"), 
             IsAdmin = reader.GetBoolean("IsAdmin"),
-            FuneralHomeId = reader.GetInt32("FuneralHomeId")
+            FuneralHomeId = reader.IsDBNull(reader.GetOrdinal("FuneralHomeId")) ? null : reader.GetInt32("FuneralHomeId")
         };
     }
     return null;
