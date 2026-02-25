@@ -112,7 +112,8 @@ namespace PERPETUUM.Services
 
         private string GenerateToken(int userId, string userName, string email, string role, int? funeralHomeId)
         {
-            var key = Encoding.UTF8.GetBytes(_configuration["JWT:SecretKey"]);
+            var secretKey = _configuration["JWT:SecretKey"] ?? throw new InvalidOperationException("JWT SecretKey no configurado");
+            var key = Encoding.UTF8.GetBytes(secretKey);
             
             
             var claims = new List<Claim>
