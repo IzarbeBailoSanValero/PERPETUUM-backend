@@ -15,4 +15,10 @@
     <PackageReference Include="Serilog.Sinks.File" Version="7.0.0" />
   </ItemGroup>
 
+  <ItemGroup>
+    <Compile Remove="PERPETUUM.Tests/**" />
+    <EmbeddedResource Remove="PERPETUUM.Tests/**" />
+    <None Remove="PERPETUUM.Tests/**" />
+  </ItemGroup>
+
 </Project>
