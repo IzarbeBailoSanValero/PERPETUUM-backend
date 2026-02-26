@@ -7,4 +7,5 @@ public interface IMemorialGuardianRepository
     Task<MemorialGuardian?> GetByEmailAsync(string email);
     Task<MemorialGuardian?> GetByIdAsync(int id);
     Task<int> AddAsync(MemorialGuardian guardian);
+    Task<List<MemorialGuardian>> GetAllAsync();
 }

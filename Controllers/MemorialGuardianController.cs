@@ -26,6 +26,22 @@ public class MemorialGuardianController : ControllerBase
         _authService = authService;
     }
 
+    [HttpGet]
+    [Authorize(Roles = Roles.Staff + "," + Roles.Admin)]
+    public async Task<ActionResult<List<GuardianResponseDTO>>> GetAll()
+    {
+        try
+        {
+            var guardians = await _service.GetAllGuardiansAsync();
+            return Ok(guardians);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error obteniendo todos los guardians");
+            return StatusCode(500, new { message = "Error interno" });
+        }
+    }
+
     [HttpGet("{id}")]
     [Authorize(Roles = Roles.Staff + "," + Roles.Admin+ "," + Roles.Guardian)] //2º CAPA BARRERA --> en la tercera hay que verificar guardian propio y staff de misma funeraria
     public async Task<ActionResult<GuardianResponseDTO>> GetById(int id)

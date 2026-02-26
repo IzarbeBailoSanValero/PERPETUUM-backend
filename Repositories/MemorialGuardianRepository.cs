@@ -130,6 +130,37 @@ public class MemorialGuardianRepository : IMemorialGuardianRepository
         }
     }
 
+    public async Task<List<MemorialGuardian>> GetAllAsync()
+    {
+        try
+        {
+            _logger.LogInformation("Obteniendo todos los guardians");
+
+            using var connection = new MySqlConnection(_connectionString);
+            await connection.OpenAsync();
+
+            string query = @"SELECT Id, FuneralHomeId, StaffId, Name, DNI, Email, PhoneNumber, PasswordHash 
+                             FROM MemorialGuardian";
+
+            using var command = new MySqlCommand(query, connection);
+            using var reader = await command.ExecuteReaderAsync();
+
+            var guardians = new List<MemorialGuardian>();
+            while (await reader.ReadAsync())
+            {
+                guardians.Add(MapFromReader(reader));
+            }
+
+            _logger.LogInformation("Se encontraron {Count} guardians", guardians.Count);
+            return guardians;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error al obtener todos los guardians");
+            throw;
+        }
+    }
+
     private MemorialGuardian MapFromReader(MySqlDataReader reader)
     {
         return new MemorialGuardian

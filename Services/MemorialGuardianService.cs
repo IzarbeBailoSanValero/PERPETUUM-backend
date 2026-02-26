@@ -65,4 +65,26 @@ public class MemorialGuardianService : IMemorialGuardianService
 
         return response;
     }
+
+    public async Task<List<GuardianResponseDTO>> GetAllGuardiansAsync()
+    {
+        var guardians = await _repository.GetAllAsync();
+        var response = new List<GuardianResponseDTO>();
+
+        foreach (var guardian in guardians)
+        {
+            var dto = new GuardianResponseDTO
+            {
+                Id = guardian.Id,
+                Name = guardian.Name,
+                Email = guardian.Email,
+                PhoneNumber = guardian.PhoneNumber,
+                FuneralHomeId = guardian.FuneralHomeId,
+                DeceasedList = await _deceasedRepository.GetByGuardianIdAsync(guardian.Id)
+            };
+            response.Add(dto);
+        }
+
+        return response;
+    }
 }
