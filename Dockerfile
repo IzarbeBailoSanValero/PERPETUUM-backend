@@ -1,4 +1,4 @@
-Docke# Etapa 1: Compilación
+# Etapa 1: Compilación
 FROM mcr.microsoft.com/dotnet/sdk:8.0 AS buildapp
 WORKDIR /src
 COPY . .
