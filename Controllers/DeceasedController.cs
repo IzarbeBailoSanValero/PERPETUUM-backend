@@ -72,23 +72,40 @@ namespace PERPETUUM.Controllers
             }
         }
 
+[HttpGet("search")]
+[AllowAnonymous]
+public async Task<ActionResult> Search([FromQuery] DeceasedSearchDTO searchDTO)
+{
+    try
+    {
+        List<DeceasedResponseDTO> result = await _deceasedService.SearchDeceasedAsync(searchDTO);
 
-        [HttpGet("search")]
-        [AllowAnonymous]
-        public async Task<ActionResult<List<DeceasedResponseDTO>>> Search([FromQuery] DeceasedSearchDTO searchDTO)
-        {
-            try
-            {
-                List<DeceasedResponseDTO> result = await _deceasedService.SearchDeceasedAsync(searchDTO);
-                return Ok(result);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Error interno al buscar difuntos");
-                return StatusCode(500, "Error interno del servidor");
-            }
-        }
+        //Parámetros de paginación
+        int pageSize = 9; //el del Frontend
+        int totalItems = result.Count;
+        int totalPages = (int)Math.Ceiling((double)totalItems / pageSize);
 
+        // 3. Recorto la lista aquí para enviar unos pocos registros y no todos --> pagin en memoria
+        int pageNumber = 1; // por defecto
+
+        var paginatedResult = result
+            .Skip((pageNumber - 1) * pageSize)          //Omite los elementos de las páginas anteriores.
+            .Take(pageSize)                             //Toma solo los elementos que caben en una página o sino los que haya
+            .ToList();                                   //  Convierte el resultado en una lista normal para devolverla.
+
+        
+        return Ok(new {
+            Items = paginatedResult,
+            TotalPages = totalPages > 0 ? totalPages : 1,
+            TotalCount = totalItems
+        });
+    }
+    catch (Exception ex)
+    {
+        _logger.LogError(ex, "Error interno al buscar difuntos");
+        return StatusCode(500, "Error interno del servidor");
+    }
+}
         //FILTROS validacion mejorados con IA
 
         [HttpPost]
