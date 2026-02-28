@@ -85,7 +85,7 @@ public class DeceasedRepository : IDeceasedRepository
                 await connection.OpenAsync();
 
                 string query = @"
-                SELECT Id, GuardianId, FuneralHomeId, GuardianId, StaffId, Dni, Name, Epitaph, Biography, PhotoURL, BirthDate, DeathDate 
+                SELECT Id, GuardianId, FuneralHomeId, StaffId, Dni, Name, Epitaph, Biography, PhotoURL, BirthDate, DeathDate 
                 FROM Deceased 
                 WHERE Id = @Id;
 
@@ -100,11 +100,11 @@ public class DeceasedRepository : IDeceasedRepository
 
                     using (var reader = await command.ExecuteReaderAsync())
                     {
-                      //si no hay registro para leer devuelve nulo --> para lanzar luego 404, sino, se pone a leer
+                        //si no hay registro para leer devuelve nulo --> para lanzar luego 404, sino, se pone a leer
                         if (!await reader.ReadAsync())
                         {
                             _logger.LogWarning($"Deceased con id:{id} NO encontrado");
-                            return null; 
+                            return null;
                         }
 
                         deceased = new Deceased
@@ -123,7 +123,7 @@ public class DeceasedRepository : IDeceasedRepository
                             Memories = new List<Memory>()
                         };
 
-                       //cargamos memorias
+                        //cargamos memorias
                         await reader.NextResultAsync();
 
                         while (await reader.ReadAsync())
@@ -133,7 +133,7 @@ public class DeceasedRepository : IDeceasedRepository
                                 Id = reader.GetInt32("Id"),
                                 CreatedDate = reader.GetDateTime("CreatedDate"),
                                 Type = (MemoryType)reader.GetInt32("Type"),
-                                Status =(MemoryStatus) reader.GetInt32("Status"),
+                                Status = (MemoryStatus)reader.GetInt32("Status"),
                                 TextContent = reader.IsDBNull(reader.GetOrdinal("TextContent")) ? null : reader.GetString("TextContent"),
                                 MediaURL = reader.IsDBNull(reader.GetOrdinal("MediaURL")) ? null : reader.GetString("MediaURL"),
                                 AuthorRelation = reader.IsDBNull(reader.GetOrdinal("AuthorRelation")) ? null : reader.GetString("AuthorRelation"),
@@ -161,40 +161,40 @@ public class DeceasedRepository : IDeceasedRepository
 
 
     public async Task<List<DeceasedSummaryDTO>> GetByGuardianIdAsync(int guardianId)
-{
-    var list = new List<DeceasedSummaryDTO>();
-
-    try
     {
-        using (var connection = new MySqlConnection(_connectionString))
+        var list = new List<DeceasedSummaryDTO>();
+
+        try
         {
-            await connection.OpenAsync();
-
-            
-            string query = "SELECT Id, Name, PhotoURL, DeathDate FROM Deceased WHERE GuardianId = @GuardianId";
-
-            using (var command = new MySqlCommand(query, connection))
+            using (var connection = new MySqlConnection(_connectionString))
             {
-                command.Parameters.AddWithValue("@GuardianId", guardianId);
+                await connection.OpenAsync();
 
-                using (var reader = await command.ExecuteReaderAsync())
+
+                string query = "SELECT Id, Name, PhotoURL, DeathDate FROM Deceased WHERE GuardianId = @GuardianId";
+
+                using (var command = new MySqlCommand(query, connection))
                 {
-                    while (await reader.ReadAsync())
+                    command.Parameters.AddWithValue("@GuardianId", guardianId);
+
+                    using (var reader = await command.ExecuteReaderAsync())
                     {
-                        list.Add(new DeceasedSummaryDTO
+                        while (await reader.ReadAsync())
                         {
-                            Id = reader.GetInt32("Id"),
-                            Name = reader.GetString("Name"),
-                            PhotoURL = reader.IsDBNull(reader.GetOrdinal("PhotoURL")) ? null : reader.GetString("PhotoURL"),
-                            DeathDate = reader.GetDateTime("DeathDate")
-                        });
+                            list.Add(new DeceasedSummaryDTO
+                            {
+                                Id = reader.GetInt32("Id"),
+                                Name = reader.GetString("Name"),
+                                PhotoURL = reader.IsDBNull(reader.GetOrdinal("PhotoURL")) ? null : reader.GetString("PhotoURL"),
+                                DeathDate = reader.GetDateTime("DeathDate")
+                            });
+                        }
                     }
                 }
             }
+            return list;
         }
-        return list;
-    }
-    catch (MySqlException ex)
+        catch (MySqlException ex)
         {
             _logger.LogError(ex, $"Error de MYSQL en GetByGuardianIdAsync: {ex.Message}");
             throw;
@@ -205,7 +205,7 @@ public class DeceasedRepository : IDeceasedRepository
             throw;
         }
 
-}
+    }
 
     public async Task<int> AddAsync(Deceased deceased)
     {
@@ -372,7 +372,22 @@ public class DeceasedRepository : IDeceasedRepository
 
                 if (!string.IsNullOrEmpty(searchDTO.SortBy))
                 {
-                    sqlBuilder.Append($" ORDER BY {searchDTO.SortBy}");
+                    string orderByColumn = searchDTO.SortBy switch
+                    {
+                        "Name" => "Name",
+                        "DeathDate" => "DeathDate",
+                        "BirthDate" => "BirthDate",
+                        "Dni" => "Dni",
+                        _ => null
+                    };
+
+                    if (orderByColumn != null)
+                    {
+                        sqlBuilder.Append($" ORDER BY {orderByColumn} ASC ");
+                    }
+
+
+
                 }
 
                 sqlBuilder.Append(";");
@@ -422,32 +437,33 @@ public class DeceasedRepository : IDeceasedRepository
     }
 
     public async Task<bool> ExistsByDniAsync(string dni, int? excludeId = null)
-{
-    using (var connection = new MySqlConnection(_connectionString))
     {
-        await connection.OpenAsync();
-        
-        // Construcción dinámica de la query
-        var sqlBuilder = new StringBuilder("SELECT COUNT(1) FROM Deceased WHERE Dni = @Dni");
-
-        // Si es Update (tenemos ID), excluimos ese ID de la búsqueda
-        if (excludeId.HasValue)
+        using (var connection = new MySqlConnection(_connectionString))
         {
-            sqlBuilder.Append(" AND Id != @ExcludeId");
-        }
+            await connection.OpenAsync();
 
-        using (var command = new MySqlCommand(sqlBuilder.ToString(), connection))
-        {
-            command.Parameters.AddWithValue("@Dni", dni);
-            
+            // Construcción dinámica de la query
+            var sqlBuilder = new StringBuilder("SELECT COUNT(1) FROM Deceased WHERE Dni = @Dni");
+
+            // Si es Update (tenemos ID), excluimos ese ID de la búsqueda
             if (excludeId.HasValue)
             {
-                command.Parameters.AddWithValue("@ExcludeId", excludeId.Value);
+                sqlBuilder.Append(" AND Id != @ExcludeId");
             }
 
-            int count = Convert.ToInt32(await command.ExecuteScalarAsync());
-            return count > 0;
+            using (var command = new MySqlCommand(sqlBuilder.ToString(), connection))
+            {
+                command.Parameters.AddWithValue("@Dni", dni);
+
+                if (excludeId.HasValue)
+                {
+                    command.Parameters.AddWithValue("@ExcludeId", excludeId.Value);
+                }
+
+                var result = await command.ExecuteScalarAsync();
+                int count = result is null ? 0 : Convert.ToInt32(result);
+                return count > 0;
+            }
         }
     }
-}
 }
