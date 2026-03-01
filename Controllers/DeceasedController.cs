@@ -81,24 +81,21 @@ namespace PERPETUUM.Controllers
                 List<DeceasedResponseDTO> result = await _deceasedService.SearchDeceasedAsync(searchDTO);
 
                 //Parámetros de paginación
-                int pageSize = 9; //el del Frontend
+                int pageSize = 9;
                 int totalItems = result.Count;
                 int totalPages = (int)Math.Ceiling((double)totalItems / pageSize);
-
-                // 3. Recorto la lista aquí para enviar unos pocos registros y no todos --> pagin en memoria
-                int pageNumber = 1; // por defecto
+                int pageNumber = searchDTO.Page > 0 ? searchDTO.Page : 1;
 
                 var paginatedResult = result
-                    .Skip((pageNumber - 1) * pageSize)          //Omite los elementos de las páginas anteriores.
-                    .Take(pageSize)                             //Toma solo los elementos que caben en una página o sino los que haya
-                    .ToList();                                   //  Convierte el resultado en una lista normal para devolverla.
-
+                    .Skip((pageNumber - 1) * pageSize)
+                    .Take(pageSize)
+                    .ToList();
 
                 return Ok(new
                 {
-                    Items = paginatedResult,
-                    TotalPages = totalPages > 0 ? totalPages : 1,
-                    TotalCount = totalItems
+                    items = paginatedResult,
+                    totalPages = totalPages > 0 ? totalPages : 1,
+                    totalCount = totalItems
                 });
             }
             catch (Exception ex)
