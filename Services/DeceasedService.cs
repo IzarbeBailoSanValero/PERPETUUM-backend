@@ -96,36 +96,32 @@ public async Task<bool> UpdateDeceasedAsync(DeceasedUpdateDTO dto)
     var existing = await _repository.GetByIdAsync(dto.Id);
     if (existing == null) return false;
 
-    ValidateDates(dto.BirthDate, dto.DeathDate);
-
-   
-    if (existing.Dni != dto.Dni)
+    if (dto.BirthDate.HasValue || dto.DeathDate.HasValue)
     {
-     
+        ValidateDates(dto.BirthDate ?? existing.BirthDate, dto.DeathDate ?? existing.DeathDate);
+    }
+
+    if (dto.Dni != null && existing.Dni != dto.Dni)
+    {
         bool exists = await _repository.ExistsByDniAsync(dto.Dni, excludeId: dto.Id);
-        
         if (exists)
         {
             throw new ArgumentException($"El DNI {dto.Dni} ya está en uso por otro difunto.");
         }
     }
     
-    var updatedDeceased = new Deceased
-    {
-        Id = dto.Id,
-        FuneralHomeId = dto.FuneralHomeId,
-        GuardianId = dto.GuardianId,
-        StaffId = dto.StaffId,
-        Dni = dto.Dni, // Asignamos el nuevo DNI
-        Name = dto.Name,
-        Epitaph = dto.Epitaph,
-        Biography = dto.Biography,
-        PhotoURL = dto.PhotoURL,
-        BirthDate = dto.BirthDate,
-        DeathDate = dto.DeathDate
-    };
+    if (dto.FuneralHomeId.HasValue) existing.FuneralHomeId = dto.FuneralHomeId.Value;
+    if (dto.GuardianId.HasValue) existing.GuardianId = dto.GuardianId.Value;
+    if (dto.StaffId.HasValue) existing.StaffId = dto.StaffId.Value;
+    if (dto.Dni != null) existing.Dni = dto.Dni;
+    if (dto.Name != null) existing.Name = dto.Name;
+    if (dto.Epitaph != null) existing.Epitaph = dto.Epitaph;
+    if (dto.Biography != null) existing.Biography = dto.Biography;
+    if (dto.PhotoURL != null) existing.PhotoURL = dto.PhotoURL;
+    if (dto.BirthDate.HasValue) existing.BirthDate = dto.BirthDate.Value;
+    if (dto.DeathDate.HasValue) existing.DeathDate = dto.DeathDate.Value;
 
-    bool hasBeenUpdated = await _repository.UpdateAsync(updatedDeceased);
+    bool hasBeenUpdated = await _repository.UpdateAsync(existing);
     return hasBeenUpdated;
 }
 
