@@ -72,40 +72,41 @@ namespace PERPETUUM.Controllers
             }
         }
 
-[HttpGet("search")]
-[AllowAnonymous]
-public async Task<ActionResult> Search([FromQuery] DeceasedSearchDTO searchDTO)
-{
-    try
-    {
-        List<DeceasedResponseDTO> result = await _deceasedService.SearchDeceasedAsync(searchDTO);
+        [HttpGet("search")]
+        [AllowAnonymous]
+        public async Task<ActionResult> Search([FromQuery] DeceasedSearchDTO searchDTO)
+        {
+            try
+            {
+                List<DeceasedResponseDTO> result = await _deceasedService.SearchDeceasedAsync(searchDTO);
 
-        //Parámetros de paginación
-        int pageSize = 9; //el del Frontend
-        int totalItems = result.Count;
-        int totalPages = (int)Math.Ceiling((double)totalItems / pageSize);
+                //Parámetros de paginación
+                int pageSize = 9; //el del Frontend
+                int totalItems = result.Count;
+                int totalPages = (int)Math.Ceiling((double)totalItems / pageSize);
 
-        // 3. Recorto la lista aquí para enviar unos pocos registros y no todos --> pagin en memoria
-        int pageNumber = 1; // por defecto
+                // 3. Recorto la lista aquí para enviar unos pocos registros y no todos --> pagin en memoria
+                int pageNumber = 1; // por defecto
 
-        var paginatedResult = result
-            .Skip((pageNumber - 1) * pageSize)          //Omite los elementos de las páginas anteriores.
-            .Take(pageSize)                             //Toma solo los elementos que caben en una página o sino los que haya
-            .ToList();                                   //  Convierte el resultado en una lista normal para devolverla.
+                var paginatedResult = result
+                    .Skip((pageNumber - 1) * pageSize)          //Omite los elementos de las páginas anteriores.
+                    .Take(pageSize)                             //Toma solo los elementos que caben en una página o sino los que haya
+                    .ToList();                                   //  Convierte el resultado en una lista normal para devolverla.
 
-        
-        return Ok(new {
-            Items = paginatedResult,
-            TotalPages = totalPages > 0 ? totalPages : 1,
-            TotalCount = totalItems
-        });
-    }
-    catch (Exception ex)
-    {
-        _logger.LogError(ex, "Error interno al buscar difuntos");
-        return StatusCode(500, "Error interno del servidor");
-    }
-}
+
+                return Ok(new
+                {
+                    Items = paginatedResult,
+                    TotalPages = totalPages > 0 ? totalPages : 1,
+                    TotalCount = totalItems
+                });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error interno al buscar difuntos");
+                return StatusCode(500, "Error interno del servidor");
+            }
+        }
         //FILTROS validacion mejorados con IA
 
         [HttpPost]
@@ -164,45 +165,30 @@ public async Task<ActionResult> Search([FromQuery] DeceasedSearchDTO searchDTO)
         [Authorize(Roles = Roles.Admin + "," + Roles.Staff + "," + Roles.Guardian)]
         public async Task<IActionResult> UpdateDeceased(int deceasedId, [FromBody] DeceasedUpdateDTO deceasedDto)
         {
-
-            if (!ModelState.IsValid)
-            {
-                _logger.LogWarning("Fallo al validar difunto debido a un formato de datos enviados inválido.");
-                return BadRequest(ModelState);
-            }
-
             if (deceasedId != deceasedDto.Id)
             {
                 _logger.LogWarning("No coincide el id del objeto a actualizar y el de la petición.");
                 return BadRequest("No coincide el id del objeto a actualizar y el de la petición.");
             }
 
-
-
             try
             {
-
-                //cojo los datos del usuario peticionario
                 var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier);
                 if (userIdClaim == null) return Unauthorized();
                 var currentlyUserId = int.Parse(userIdClaim.Value);
 
-                //cojo al deceased
                 var deceased = await _deceasedService.GetDeceasedProfileAsync(deceasedId);
                 if (deceased == null)
                 {
                     return NotFound($"No se encontró difunto con ID {deceasedId}.");
                 }
 
-                //permisos: admin?---> su guardian?
                 bool canUpdate = false;
 
-                //admin
                 if (User.IsInRole(Roles.Admin))
                 {
                     canUpdate = true;
                 }
-                // staff de la misma funeraria
                 else if (User.IsInRole(Roles.Staff))
                 {
                     var staffProfile = await _staffService.GetByIdAsync(currentlyUserId);
@@ -211,7 +197,6 @@ public async Task<ActionResult> Search([FromQuery] DeceasedSearchDTO searchDTO)
                         canUpdate = true;
                     }
                 }
-                //guardian
                 else if (User.IsInRole(Roles.Guardian))
                 {
                     if (deceased.GuardianId == currentlyUserId)
@@ -220,33 +205,40 @@ public async Task<ActionResult> Search([FromQuery] DeceasedSearchDTO searchDTO)
                     }
                 }
 
-
                 if (!canUpdate)
                 {
-                    return Forbid(); // 403: Usuario logueado, pero sin permiso para ESTE recurso
+                    return Forbid();
                 }
 
+                // Actualizar solo campos no nulos
+                if (deceasedDto.Name != null) deceased.Name = deceasedDto.Name;
+                if (deceasedDto.Dni != null) deceased.Dni = deceasedDto.Dni;
+                if (deceasedDto.GuardianId.HasValue) deceased.GuardianId = deceasedDto.GuardianId.Value;
+                if (deceasedDto.FuneralHomeId.HasValue) deceased.FuneralHomeId = deceasedDto.FuneralHomeId.Value;
+                if (deceasedDto.StaffId.HasValue) deceased.StaffId = deceasedDto.StaffId.Value;
+                if (deceasedDto.Biography != null) deceased.Biography = deceasedDto.Biography;
+                if (deceasedDto.PhotoURL != null) deceased.PhotoURL = deceasedDto.PhotoURL;
+                if (deceasedDto.Epitaph != null) deceased.Epitaph = deceasedDto.Epitaph;
+                if (deceasedDto.BirthDate.HasValue) deceased.BirthDate = deceasedDto.BirthDate.Value;
+                if (deceasedDto.DeathDate.HasValue) deceased.DeathDate = deceasedDto.DeathDate.Value;
 
-
-
-
-                bool hasBeenUpdated = await _deceasedService.UpdateDeceasedAsync(deceasedDto);
+                bool hasBeenUpdated = await _deceasedService.UpdateDeceasedAsync(deceased);
 
                 if (hasBeenUpdated)
                 {
                     _logger.LogInformation($"Éxito al actualizar el difunto con id {deceasedId}");
-                    return NoContent(); // 204
+                    return NoContent();
                 }
                 else
                 {
-                    _logger.LogWarning($"Fracaso al actualizar el difunto con id {deceasedId}, no encontrado en base de datos");
+                    _logger.LogWarning($"Fracaso al actualizar el difunto con id {deceasedId}");
                     return NotFound($"No encontrado difunto con ID {deceasedId}. Fallo al actualizar");
                 }
             }
             catch (ArgumentException ex)
             {
                 _logger.LogWarning("Error respecto a las reglas de negocio en update");
-                return Conflict(ex.Message); //409
+                return Conflict(ex.Message);
             }
             catch (Exception ex)
             {
