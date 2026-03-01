@@ -88,27 +88,29 @@ public class MemorialGuardianService : IMemorialGuardianService
         return response;
     }
 
-    public async Task<bool> UpdateGuardianAsync(GuardianUpdateDTO dto)
+ public async Task<bool> UpdateGuardianAsync(GuardianUpdateDTO dto)
+{
+    var existing = await _repository.GetByIdAsync(dto.Id);
+    if (existing == null) return false;
+
+    // Solo actualizar campos que tienen valor
+    if (dto.Name != null) existing.Name = dto.Name;
+    if (dto.Dni != null) existing.Dni = dto.Dni;
+    
+    if (dto.Email != null && existing.Email != dto.Email)
     {
-        var existing = await _repository.GetByIdAsync(dto.Id);
-        if (existing == null) return false;
-
-        if (existing.Email != dto.Email)
+        var emailCheck = await _repository.GetByEmailAsync(dto.Email);
+        if (emailCheck != null && emailCheck.Id != dto.Id)
         {
-            var emailCheck = await _repository.GetByEmailAsync(dto.Email);
-            if (emailCheck != null && emailCheck.Id != dto.Id)
-            {
-                throw new ArgumentException("El email ya está registrado por otro guardián.");
-            }
+            throw new ArgumentException("El email ya está registrado por otro guardián.");
         }
-
-        existing.Name = dto.Name;
-        existing.Dni = dto.Dni;
         existing.Email = dto.Email;
-        existing.PhoneNumber = dto.PhoneNumber;
-
-        return await _repository.UpdateAsync(existing);
     }
+    
+    if (dto.PhoneNumber != null) existing.PhoneNumber = dto.PhoneNumber;
+
+    return await _repository.UpdateAsync(existing);
+}
 
     public async Task<bool> DeleteGuardianAsync(int id)
     {
