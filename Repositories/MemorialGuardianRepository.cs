@@ -161,6 +161,58 @@ public class MemorialGuardianRepository : IMemorialGuardianRepository
         }
     }
 
+
+    public async Task<bool> UpdateAsync(MemorialGuardian guardian)
+    {
+        try
+        {
+            using var connection = new MySqlConnection(_connectionString);
+            await connection.OpenAsync();
+
+            string query = @"UPDATE MemorialGuardian 
+                             SET Name = @Name, DNI = @Dni, Email = @Email, PhoneNumber = @Phone 
+                             WHERE Id = @Id";
+
+            using var command = new MySqlCommand(query, connection);
+            command.Parameters.AddWithValue("@Id", guardian.Id);
+            command.Parameters.AddWithValue("@Name", guardian.Name);
+            command.Parameters.AddWithValue("@Dni", guardian.Dni);
+            command.Parameters.AddWithValue("@Email", guardian.Email);
+            command.Parameters.AddWithValue("@Phone", guardian.PhoneNumber);
+
+            int affected = await command.ExecuteNonQueryAsync();
+            return affected > 0;
+        }
+        catch (MySqlException ex)
+        {
+            _logger.LogError(ex, $"Error de MYSQL en UpdateAsync: {ex.Message}");
+            throw;
+        }
+    }
+
+    public async Task<bool> DeleteAsync(int id)
+    {
+        try
+        {
+            using var connection = new MySqlConnection(_connectionString);
+            await connection.OpenAsync();
+
+            string query = "DELETE FROM MemorialGuardian WHERE Id = @Id";
+
+            using var command = new MySqlCommand(query, connection);
+            command.Parameters.AddWithValue("@Id", id);
+
+            int affected = await command.ExecuteNonQueryAsync();
+            return affected > 0;
+        }
+        catch (MySqlException ex)
+        {
+            _logger.LogError(ex, $"Error de MYSQL en DeleteAsync: {ex.Message}");
+            throw;
+        }
+    }
+
+
     private MemorialGuardian MapFromReader(MySqlDataReader reader)
     {
         return new MemorialGuardian
@@ -175,5 +227,4 @@ public class MemorialGuardianRepository : IMemorialGuardianRepository
             PasswordHash = reader.GetString("PasswordHash")
         };
     }
-
-}
+    }

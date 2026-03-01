@@ -136,4 +136,47 @@ public class MemorialGuardianController : ControllerBase
         }
     }
 
+    [HttpPut("{id}")]
+    [Authorize(Roles = Roles.Staff + "," + Roles.Admin)]
+    public async Task<ActionResult> Update(int id, [FromBody] GuardianUpdateDTO dto)
+    {
+        if (id != dto.Id) return BadRequest(new { message = "El ID de la ruta no coincide con el del cuerpo." });
+        if (!ModelState.IsValid) return BadRequest(ModelState);
+
+        try
+        {
+            bool updated = await _service.UpdateGuardianAsync(dto);
+            if (!updated) return NotFound(new { message = $"No se encontró el guardián con ID {id}." });
+
+            return NoContent();
+        }
+        catch (ArgumentException ex)
+        {
+            return Conflict(new { message = ex.Message });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error actualizando guardián");
+            return StatusCode(500, new { message = "Error interno del servidor" });
+        }
+    }
+
+    [HttpDelete("{id}")]
+    [Authorize(Roles = Roles.Staff + "," + Roles.Admin)]
+    public async Task<ActionResult> Delete(int id)
+    {
+        try
+        {
+            bool deleted = await _service.DeleteGuardianAsync(id);
+            if (!deleted) return NotFound(new { message = $"No se encontró el guardián con ID {id}." });
+
+            return NoContent();
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error borrando guardián");
+            return StatusCode(500, new { message = "No se puede borrar el guardián. Asegúrate de que no tenga difuntos a su cargo." });
+        }
+    }
+
 }
