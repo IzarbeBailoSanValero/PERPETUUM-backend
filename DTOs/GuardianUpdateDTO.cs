@@ -7,10 +7,10 @@ public class GuardianUpdateDTO
     [Required]
     public int Id { get; set; }
 
-    [StringLength(100)]
+    [StringLength(100, MinimumLength = 0)]
     public string? Name { get; set; }
 
-    [StringLength(9)]
+    [StringLength(9, MinimumLength = 0)]
     public string? Dni { get; set; }
 
     [EmailAddress]

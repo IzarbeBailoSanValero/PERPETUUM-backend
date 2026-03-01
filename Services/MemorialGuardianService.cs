@@ -93,11 +93,11 @@ public class MemorialGuardianService : IMemorialGuardianService
     var existing = await _repository.GetByIdAsync(dto.Id);
     if (existing == null) return false;
 
-    // Solo actualizar campos que tienen valor
-    if (dto.Name != null) existing.Name = dto.Name;
-    if (dto.Dni != null) existing.Dni = dto.Dni;
+    // Solo actualizar campos que tienen valor no vacío
+    if (!string.IsNullOrWhiteSpace(dto.Name)) existing.Name = dto.Name;
+    if (!string.IsNullOrWhiteSpace(dto.Dni)) existing.Dni = dto.Dni;
     
-    if (dto.Email != null && existing.Email != dto.Email)
+    if (!string.IsNullOrWhiteSpace(dto.Email) && existing.Email != dto.Email)
     {
         var emailCheck = await _repository.GetByEmailAsync(dto.Email);
         if (emailCheck != null && emailCheck.Id != dto.Id)
@@ -107,7 +107,7 @@ public class MemorialGuardianService : IMemorialGuardianService
         existing.Email = dto.Email;
     }
     
-    if (dto.PhoneNumber != null) existing.PhoneNumber = dto.PhoneNumber;
+    if (!string.IsNullOrWhiteSpace(dto.PhoneNumber)) existing.PhoneNumber = dto.PhoneNumber;
 
     return await _repository.UpdateAsync(existing);
 }
