@@ -163,6 +163,7 @@ public async Task<bool> UpdateDeceasedAsync(DeceasedUpdateDTO dto)
 
     private DeceasedResponseDTO MapModelToDTO(Deceased model, bool includeMemories)
 {
+    Console.WriteLine($"pre transformacion {model.Name}");
     var dto = new DeceasedResponseDTO
     {
         Id = model.Id,
@@ -187,6 +188,7 @@ public async Task<bool> UpdateDeceasedAsync(DeceasedUpdateDTO dto)
             dto.Memories.Add(MapMemoryToDTO(mem));
         }
     }
+    Console.WriteLine($"post transformacion {dto.Name}");
     return dto;
 }
 
