@@ -118,9 +118,9 @@ INSERT INTO `User` (Name, BirthDate, Email, PhoneNumber, PasswordHash) VALUES
 
 -- MemorialGuardian (Familiares)
 INSERT INTO MemorialGuardian (FuneralHomeId, StaffId, Name, DNI, Email, PhoneNumber, PasswordHash) VALUES 
-(1, 2, 'Andrés Pérez (Hijo)', '11223344C', 'andres@familia.com', '677888999', '$2a$11$jNRYr2iZD2xWNHtuXD6Gj.S4kU6OsQd/B/G49eo49pbuzOORQ1oh6'),
-(2, 3, 'Carmen Ruiz (Viuda)', '55667788D', 'carmen@familia.com', '677000111', '$2a$11$jNRYr2iZD2xWNHtuXD6Gj.S4kU6OsQd/B/G49eo49pbuzOORQ1oh6'),
-(3, 4, 'Lucía Torres (Hija)', '77665544P', 'lucia@familia.com', '688111222', '$2a$11$jNRYr2iZD2xWNHtuXD6Gj.S4kU6OsQd/B/G49eo49pbuzOORQ1oh6');
+(1, 2, 'Andrés Pérez ', '11223344C', 'andres@familia.com', '677888999', '$2a$11$jNRYr2iZD2xWNHtuXD6Gj.S4kU6OsQd/B/G49eo49pbuzOORQ1oh6'),
+(2, 3, 'Carmen Ruiz ', '55667788D', 'carmen@familia.com', '677000111', '$2a$11$jNRYr2iZD2xWNHtuXD6Gj.S4kU6OsQd/B/G49eo49pbuzOORQ1oh6'),
+(3, 4, 'Lucía Torres ', '77665544P', 'lucia@familia.com', '688111222', '$2a$11$jNRYr2iZD2xWNHtuXD6Gj.S4kU6OsQd/B/G49eo49pbuzOORQ1oh6');
 -- Deceased
 INSERT INTO Deceased (Dni, FuneralHomeId, GuardianId, StaffId, Name, Epitaph, Biography, PhotoURL, BirthDate, DeathDate) VALUES 
 ('11111111A', 1, 1, 2, 'Don Manuel Pérez', 'Un hombre de campo', 'Bio de Manuel...', 'https://via.placeholder.com/150', '1945-05-15', '2024-01-10'),
