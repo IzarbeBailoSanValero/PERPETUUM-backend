@@ -93,7 +93,8 @@ CREATE TABLE Memory (
 
 -- =======================================================
 -- 2. INSERCIÓN DE DATOS DE PRUEBA (SEEDING)
--- NOTA: Todos los PasswordHash corresponden a la contraseña: "123456"
+--la contraseña para todos los datos de prueba es: admin123
+
 -- =======================================================
 
 -- Funeral Homes
@@ -104,23 +105,22 @@ INSERT INTO FuneralHome (Name, CIF, ContactEmail, Address, PhoneNumber) VALUES
 
 -- Staff (Con Admin y Empleados normales)
 INSERT INTO Staff (FuneralHomeId, Name, Email, DNI, PasswordHash, IsAdmin) VALUES 
-(1, 'Izarbe Bailo', 'admin@perpetuum.com', '00000000A', '$2a$11$jNRYr2iZD2xWNHtuXD6Gj.S4kU6OsQd/B/G49eo49pbuzOORQ1oh6', 1), -- yo (ADMIN)
-(1, 'Roberto García', 'roberto@sanjose.com', '12345678A', '$2a$11$Z5.1.2.3.4.5.6.7.8.9.0.A.B.C.D.E', 0), -- Staff normal
-(2, 'Lucía Méndez', 'lucia@eternidad.es', '87654321B', '$2a$11$Z5.1.2.3.4.5.6.7.8.9.0.A.B.C.D.E', 0),
-(3, 'Beatriz Soto', 'beatriz@luzcamino.com', '55443322X', '$2a$11$Z5.1.2.3.4.5.6.7.8.9.0.A.B.C.D.E', 0);
+(1, 'Izarbe Bailo', 'admin@perpetuum.com', '00000000A', '$2a$11$jNRYr2iZD2xWNHtuXD6Gj.S4kU6OsQd/B/G49eo49pbuzOORQ1oh6', 1),
+(1, 'Roberto García', 'roberto@sanjose.com', '12345678A', '$2a$11$jNRYr2iZD2xWNHtuXD6Gj.S4kU6OsQd/B/G49eo49pbuzOORQ1oh6', 0), 
+(2, 'Lucía Méndez', 'lucia@eternidad.es', '87654321B', '$2a$11$jNRYr2iZD2xWNHtuXD6Gj.S4kU6OsQd/B/G49eo49pbuzOORQ1oh6', 0),
+(3, 'Beatriz Soto', 'beatriz@luzcamino.com', '55443322X', '$2a$11$jNRYr2iZD2xWNHtuXD6Gj.S4kU6OsQd/B/G49eo49pbuzOORQ1oh6', 0);
 
 -- User (Público)
 INSERT INTO `User` (Name, BirthDate, Email, PhoneNumber, PasswordHash) VALUES 
-('Marta Sánchez', '1992-03-10', 'marta@email.com', '600111222', '$2a$11$Z5.1.2.3.4.5.6.7.8.9.0.A.B.C.D.E'),
-('Javier López', '1985-07-20', 'javier@email.com', '600333444', '$2a$11$Z5.1.2.3.4.5.6.7.8.9.0.A.B.C.D.E'),
-('Elena Prieto', '1978-11-05', 'elena@email.com', '600555666', '$2a$11$Z5.1.2.3.4.5.6.7.8.9.0.A.B.C.D.E');
+('Marta Sánchez', '1992-03-10', 'marta@email.com', '600111222', '$2a$11$jNRYr2iZD2xWNHtuXD6Gj.S4kU6OsQd/B/G49eo49pbuzOORQ1oh6'),
+('Javier López', '1985-07-20', 'javier@email.com', '600333444', '$2a$11$jNRYr2iZD2xWNHtuXD6Gj.S4kU6OsQd/B/G49eo49pbuzOORQ1oh6'),
+('Elena Prieto', '1978-11-05', 'elena@email.com', '600555666', '$2a$11$jNRYr2iZD2xWNHtuXD6Gj.S4kU6OsQd/B/G49eo49pbuzOORQ1oh6');
 
 -- MemorialGuardian (Familiares)
 INSERT INTO MemorialGuardian (FuneralHomeId, StaffId, Name, DNI, Email, PhoneNumber, PasswordHash) VALUES 
-(1, 2, 'Andrés Pérez (Hijo)', '11223344C', 'andres@familia.com', '677888999', '$2a$11$Z5.1.2.3.4.5.6.7.8.9.0.A.B.C.D.E'),
-(2, 3, 'Carmen Ruiz (Viuda)', '55667788D', 'carmen@familia.com', '677000111', '$2a$11$Z5.1.2.3.4.5.6.7.8.9.0.A.B.C.D.E'),
-(3, 4, 'Lucía Torres (Hija)', '77665544P', 'lucia@familia.com', '688111222', '$2a$11$Z5.1.2.3.4.5.6.7.8.9.0.A.B.C.D.E');
-
+(1, 2, 'Andrés Pérez (Hijo)', '11223344C', 'andres@familia.com', '677888999', '$2a$11$jNRYr2iZD2xWNHtuXD6Gj.S4kU6OsQd/B/G49eo49pbuzOORQ1oh6'),
+(2, 3, 'Carmen Ruiz (Viuda)', '55667788D', 'carmen@familia.com', '677000111', '$2a$11$jNRYr2iZD2xWNHtuXD6Gj.S4kU6OsQd/B/G49eo49pbuzOORQ1oh6'),
+(3, 4, 'Lucía Torres (Hija)', '77665544P', 'lucia@familia.com', '688111222', '$2a$11$jNRYr2iZD2xWNHtuXD6Gj.S4kU6OsQd/B/G49eo49pbuzOORQ1oh6');
 -- Deceased
 INSERT INTO Deceased (Dni, FuneralHomeId, GuardianId, StaffId, Name, Epitaph, Biography, PhotoURL, BirthDate, DeathDate) VALUES 
 ('11111111A', 1, 1, 2, 'Don Manuel Pérez', 'Un hombre de campo', 'Bio de Manuel...', 'https://via.placeholder.com/150', '1945-05-15', '2024-01-10'),
