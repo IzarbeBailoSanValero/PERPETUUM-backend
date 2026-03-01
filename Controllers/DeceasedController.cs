@@ -215,14 +215,13 @@ namespace PERPETUUM.Controllers
                 if (deceasedDto.Dni != null) deceased.Dni = deceasedDto.Dni;
                 if (deceasedDto.GuardianId.HasValue) deceased.GuardianId = deceasedDto.GuardianId.Value;
                 if (deceasedDto.FuneralHomeId.HasValue) deceased.FuneralHomeId = deceasedDto.FuneralHomeId.Value;
-                if (deceasedDto.StaffId.HasValue) deceased.StaffId = deceasedDto.StaffId.Value;
                 if (deceasedDto.Biography != null) deceased.Biography = deceasedDto.Biography;
                 if (deceasedDto.PhotoURL != null) deceased.PhotoURL = deceasedDto.PhotoURL;
                 if (deceasedDto.Epitaph != null) deceased.Epitaph = deceasedDto.Epitaph;
                 if (deceasedDto.BirthDate.HasValue) deceased.BirthDate = deceasedDto.BirthDate.Value;
                 if (deceasedDto.DeathDate.HasValue) deceased.DeathDate = deceasedDto.DeathDate.Value;
 
-                bool hasBeenUpdated = await _deceasedService.UpdateDeceasedAsync(deceased);
+                bool hasBeenUpdated = await _deceasedService.UpdateDeceasedAsync(deceasedDto);
 
                 if (hasBeenUpdated)
                 {
