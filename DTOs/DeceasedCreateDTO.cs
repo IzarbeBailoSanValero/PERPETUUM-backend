@@ -23,8 +23,9 @@ public class DeceasedCreateDTO
     public string Name { get; set; }
 
 
+    [Required(ErrorMessage = "El epitafio es obligatorio")]
     [StringLength(255)]
-    public string? Epitaph { get; set; }
+    public string Epitaph { get; set; }
 
 
     [Required(ErrorMessage = "La biografía es obligatoria")]
