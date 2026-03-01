@@ -93,7 +93,7 @@ CREATE TABLE Memory (
 
 -- =======================================================
 -- 2. INSERCIÓN DE DATOS DE PRUEBA (SEEDING)
---la contraseña para todos los datos de prueba es: admin123
+-- la contraseña para todos los datos de prueba es: admin123
 
 -- =======================================================
 
