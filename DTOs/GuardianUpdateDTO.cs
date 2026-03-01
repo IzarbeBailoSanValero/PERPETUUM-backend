@@ -7,20 +7,16 @@ public class GuardianUpdateDTO
     [Required]
     public int Id { get; set; }
 
-    [Required(ErrorMessage = "El nombre es obligatorio.")]
     [StringLength(100)]
-    public string Name { get; set; } = string.Empty;
+    public string? Name { get; set; }
 
-    [Required(ErrorMessage = "El DNI es obligatorio.")]
     [StringLength(9)]
-    public string Dni { get; set; } = string.Empty;
+    public string? Dni { get; set; }
 
-    [Required(ErrorMessage = "El email es obligatorio.")]
     [EmailAddress]
-    public string Email { get; set; } = string.Empty;
+    public string? Email { get; set; }
 
-    public string PhoneNumber { get; set; } = string.Empty;
+    public string? PhoneNumber { get; set; }
     
-    public int FuneralHomeId { get; set; }
-    public int StaffId { get; set; }
+    public string? Password { get; set; }
 }

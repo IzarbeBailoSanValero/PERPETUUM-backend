@@ -32,7 +32,7 @@ builder.Services.AddCors(options =>
 // Definimos que queremos escribir en consola y en un archivo
 Log.Logger = new LoggerConfiguration()
     .WriteTo.Console() // Para ver todo en la consola negra
-    .WriteTo.File("Logs.log", 
+    .WriteTo.File("/app/logs/Logs.log", 
         restrictedToMinimumLevel: Serilog.Events.LogEventLevel.Error) // sólo escribe si es ERROR o CRITICAL
     .CreateLogger();
 
