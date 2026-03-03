@@ -1,34 +1,30 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using PERPETUUM.DTOs;
-using PERPETUUM.Models; //para utilizar los roles en la protección
+using PERPETUUM.Models;
 using PERPETUUM.Services;
-using Microsoft.AspNetCore.Authorization;
-
 using System.Security.Claims;
-namespace PERPETUUM.Controllers;
 
+namespace PERPETUUM.Controllers;
 
 [Route("api/[controller]")]
 [ApiController]
-//hago la proteccion a nivel de función
 public class MemoryController : ControllerBase
 {
     private readonly IMemoryService _memoryService;
     private readonly ILogger<MemoryController> _logger;
     private readonly IDeceasedService _deceasedService;
 
-    public MemoryController(IMemoryService service, ILogger<MemoryController> logger, IMemorialGuardianService guardianService, IDeceasedService deceasedService)
+    public MemoryController(IMemoryService service, ILogger<MemoryController> logger, IDeceasedService deceasedService)
     {
         _memoryService = service;
         _logger = logger;
         _deceasedService = deceasedService;
     }
 
-
-
-    [AllowAnonymous] //se que no hace falta ponerlo porque no he puesto autorize a nivel de controller, pero lo dejo por si en un futuro lo hago, no se oculte. así más explicativo tambien 
+    [AllowAnonymous]
     [HttpGet("deceased/{deceasedId}")]
-    public async Task<ActionResult<List<MemoryResponseDTO>>> GetByDeceased(int deceasedId, [FromQuery] bool approved = true) //     Permite añadir ?approved=false en la URL. //el deceased lo coge del nombre de la dirección directamente
+    public async Task<ActionResult<List<MemoryResponseDTO>>> GetByDeceased(int deceasedId, [FromQuery] bool approved = true)
     {
         try
         {
@@ -37,191 +33,160 @@ public class MemoryController : ControllerBase
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, $"Error en Controller al obtener memorias del difunto {deceasedId}");
+            _logger.LogError(ex, "Error al obtener memorias del difunto {DeceasedId}", deceasedId);
             return StatusCode(500, "Ocurrió un error interno al recuperar los datos.");
         }
     }
 
+    [HttpGet("pending")]
+    [Authorize(Roles = Roles.Admin + "," + Roles.Guardian)]
+    public async Task<ActionResult<List<MemoryModerationDTO>>> GetPending([FromQuery] int? deceasedId = null)
+    {
+        try
+        {
+            int? currentUserId = GetCurrentUserId();
+            if (currentUserId == null) return Unauthorized();
+
+            if (User.IsInRole(Roles.Admin))
+            {
+                var adminFilter = deceasedId.HasValue ? new List<int> { deceasedId.Value } : null;
+                var pendingForAdmin = await _memoryService.GetPendingForModerationAsync(adminFilter);
+                return Ok(pendingForAdmin);
+            }
+
+            var myDeceasedIds = await GetAllowedDeceasedIdsForGuardian(currentUserId.Value);
+            if (myDeceasedIds.Count == 0)
+            {
+                return Ok(new List<MemoryModerationDTO>());
+            }
+
+            if (deceasedId.HasValue && !myDeceasedIds.Contains(deceasedId.Value))
+            {
+                return Forbid();
+            }
+
+            var guardianFilter = deceasedId.HasValue ? new List<int> { deceasedId.Value } : myDeceasedIds;
+            var pendingForGuardian = await _memoryService.GetPendingForModerationAsync(guardianFilter);
+            return Ok(pendingForGuardian);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error al obtener memorias pendientes de moderación");
+            return StatusCode(500, "Error interno al recuperar pendientes de moderación.");
+        }
+    }
 
     [HttpPost]
-    [Authorize(Roles = Roles.StandardUser)]//extraigo el id de usuario del token de user --> se asigna a l objeto antes de llamar al service
+    [Authorize(Roles = Roles.StandardUser)]
     public async Task<ActionResult> AddMemory([FromBody] MemoryCreateDTO dto)
     {
         if (!ModelState.IsValid)
         {
-            _logger.LogWarning("Fallo al validar memoria debido a un formato de datos enviados inválido.");
+            _logger.LogWarning("Payload inválido en creación de memoria");
             return BadRequest(ModelState);
         }
+
         try
         {
+            int? currentUserId = GetCurrentUserId();
+            if (currentUserId == null) return Unauthorized();
 
-            //cojo id de los claims --> el objeto User es una propiedad de ControllerBase que representa al usuario autenticado que hace la petición, por eso tengo acceso a él.
-            var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier);
-
-            if (userIdClaim == null) return Unauthorized(); //problema al obtener claim --> problema con el token
-
-            //como el vlaor de claim llega como string xq JSON, hay que parsearlo a string
-            //no puedo hacer cast directo (int) porque no son tipos compatibles
-            int currentUserId = int.Parse(userIdClaim.Value);
-
-
-
-            var newId = await _memoryService.AddMemoryAsync(dto, currentUserId);
+            var newId = await _memoryService.AddMemoryAsync(dto, currentUserId.Value);
             return CreatedAtAction(nameof(GetByDeceased), new { deceasedId = dto.DeceasedId }, new { id = newId });
-
-
-
         }
         catch (ArgumentException ex)
         {
-
-            _logger.LogWarning("Error respecto a las reglas de negocio en memory");
+            _logger.LogWarning("Regla de negocio inválida al crear memoria: {Message}", ex.Message);
             return Conflict(ex.Message);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error interno al procesar create deceased en controller");
+            _logger.LogError(ex, "Error interno al crear memoria");
             return StatusCode(500, "Error interno al procesar petición");
         }
     }
 
-
-    //para utilizar varios hay ue concatenar strings
     [HttpPut("{id}/status")]
     [Authorize(Roles = Roles.Admin + "," + Roles.Guardian)]
-    public async Task<ActionResult> UpdateStatus(int id, [FromBody] int statusInt)
+    public async Task<ActionResult> UpdateStatus(int id, [FromBody] MemoryStatusUpdateDTO dto)
     {
         if (!ModelState.IsValid)
         {
-            _logger.LogWarning("Fallo al validar memoria debido a un formato de datos enviados inválido.");
+            _logger.LogWarning("Payload inválido al actualizar estado de memoria");
             return BadRequest(ModelState);
         }
 
         try
         {
-            //recupero la memoria para tener los datos para filtrado
             var memoryDTO = await _memoryService.GetByIdAsync(id);
-
             if (memoryDTO == null)
             {
                 return NotFound($"No se encontró la memoria con ID {id}.");
             }
 
-            //cojo los datos del usuario peticionario
-            var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier);
-            if (userIdClaim == null) return Unauthorized();
-            var currentlyUserId = int.Parse(userIdClaim.Value);
+            int? currentUserId = GetCurrentUserId();
+            if (currentUserId == null) return Unauthorized();
 
-            //permisos: admin?---> su guardian?
-            bool canUpdate = false;
+            bool canUpdate = User.IsInRole(Roles.Admin);
 
-
-
-            //admin
-            if (User.IsInRole(Roles.Admin))
+            if (!canUpdate && User.IsInRole(Roles.Guardian))
             {
-                canUpdate = true;
+                canUpdate = await CanGuardianModerateDeceased(currentUserId.Value, memoryDTO.DeceasedId);
             }
-            //guardian
-            else if (User.IsInRole(Roles.Guardian))
+
+            if (!canUpdate)
             {
+                return Forbid();
+            }
 
-                //traigo sus difuntos a cargo 
-                var myDeceasedList = await _deceasedService.GetByGuardianIdAsync(currentlyUserId);
+            var newStatus = (MemoryStatus)dto.Status;
+            bool hasBeenUpdated = await _memoryService.UpdateStatusAsync(id, newStatus);
 
-                if (myDeceasedList != null)
-                {
+            if (!hasBeenUpdated) return NotFound($"No se encontró la memoria con ID {id}.");
 
-                    foreach (var deceased in myDeceasedList)
-                    {
-                        if (deceased.Id == memoryDTO.DeceasedId)
-                        {
-                            canUpdate = true;
-                            break;
-                        }
-                    }
-                }
-
-          }
-
-                if (!canUpdate)
-                {
-                    return Forbid();
-                }
-
-                var status = (MemoryStatus)statusInt;
-
-                bool hasBeenUpdated = await _memoryService.UpdateStatusAsync(id, status);
-
-                if (!hasBeenUpdated) return NotFound($"No se encontró la memoria con ID {id}.");
-
-                return NoContent();
-                }
-
-
-
-  
+            return NoContent();
+        }
         catch (ArgumentException ex)
         {
-            _logger.LogWarning("Error respecto a las reglas de negocio en memory: {Message}", ex.Message);
+            _logger.LogWarning("Regla de negocio inválida al actualizar estado: {Message}", ex.Message);
             return BadRequest(ex.Message);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error en Controller al actualizar estado de la memoria {Id}", id);
+            _logger.LogError(ex, "Error al actualizar estado de memoria {Id}", id);
             return StatusCode(500, "Error interno al actualizar el estado.");
         }
     }
 
-
     [HttpDelete("{id}")]
-    // LO PONGO COMO AUTHORIZED, ABIERTO A LOS LOGGEADOS, comprobación dentro xq son todos con condiciones
+    [Authorize(Roles = Roles.Admin + "," + Roles.Guardian + "," + Roles.StandardUser)]
     public async Task<ActionResult> Delete(int id)
     {
         try
         {
-            //recupero la memoria para tener los datos para filtrado
             var memoryDTO = await _memoryService.GetByIdAsync(id);
-
-            //cojo los datos del usuario peticionario
-            var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier);
-            if (userIdClaim == null) return Unauthorized();
-            var currentlyUserId = int.Parse(userIdClaim.Value);
-
             if (memoryDTO == null)
             {
-                _logger.LogWarning($"Intento de eliminación de memoria con id {id} que no existe.");
+                _logger.LogWarning("Intento de eliminación de memoria inexistente {Id}", id);
                 return NotFound();
             }
 
-            //permisos: admin? --> su autor? ---> su guardian?
+            int? currentUserId = GetCurrentUserId();
+            if (currentUserId == null) return Unauthorized();
+
             bool canDelete = false;
 
-            //admin
-            if (User.IsInRole(Roles.Admin)) canDelete = true;
-            //author
-            else if (memoryDTO.UserId == currentlyUserId) canDelete = true;
-            //guardian
+            if (User.IsInRole(Roles.Admin))
+            {
+                canDelete = true;
+            }
+            else if (memoryDTO.UserId == currentUserId.Value)
+            {
+                canDelete = true;
+            }
             else if (User.IsInRole(Roles.Guardian))
             {
-
-                //traigo sus difuntos a cargo 
-                var myDeceasedList = await _deceasedService.GetByGuardianIdAsync(currentlyUserId);
-
-                if (myDeceasedList != null)
-                {
-
-                    foreach (var deceased in myDeceasedList)
-                    {
-                        if (deceased.Id == memoryDTO.DeceasedId)
-                        {
-                            canDelete = true;
-                            break;
-                        }
-                    }
-                }
-
-
+                canDelete = await CanGuardianModerateDeceased(currentUserId.Value, memoryDTO.DeceasedId);
             }
 
             if (!canDelete)
@@ -230,21 +195,44 @@ public class MemoryController : ControllerBase
             }
 
             var hasBeenDeleted = await _memoryService.DeleteMemoryAsync(id);
-
             if (!hasBeenDeleted)
             {
-                _logger.LogWarning($"Fracaso al eliminar memoria con id {id}, no encontrado en base de datos");
+                _logger.LogWarning("No se pudo eliminar memoria {Id}", id);
                 return NotFound();
             }
+
             return NoContent();
-
-
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error interno al procesar delete memory en controller");
+            _logger.LogError(ex, "Error interno al eliminar memoria {Id}", id);
             return StatusCode(500, "Error interno al procesar petición");
         }
     }
 
+    private int? GetCurrentUserId()
+    {
+        var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier);
+        if (userIdClaim == null) return null;
+        return int.TryParse(userIdClaim.Value, out var parsedId) ? parsedId : null;
+    }
+
+    private async Task<List<int>> GetAllowedDeceasedIdsForGuardian(int guardianId)
+    {
+        var myDeceased = await _deceasedService.GetByGuardianIdAsync(guardianId);
+        var ids = new List<int>(myDeceased.Count);
+
+        foreach (var deceased in myDeceased)
+        {
+            ids.Add(deceased.Id);
+        }
+
+        return ids;
+    }
+
+    private async Task<bool> CanGuardianModerateDeceased(int guardianId, int deceasedId)
+    {
+        var myDeceasedIds = await GetAllowedDeceasedIdsForGuardian(guardianId);
+        return myDeceasedIds.Contains(deceasedId);
+    }
 }

@@ -1,4 +1,5 @@
 using PERPETUUM.Models;
+using PERPETUUM.DTOs;
 
 namespace PERPETUUM.Repositories;
 public interface IMemoryRepository
@@ -8,6 +9,7 @@ public interface IMemoryRepository
 
     // Obtiene  APROBADAS --> para el obituario
     Task<List<Memory>> GetApprovedByDeceasedIdAsync(int deceasedId);
+    Task<List<MemoryModerationDTO>> GetPendingForModerationAsync(List<int>? deceasedIds = null);
     Task<Memory?> GetByIdAsync(int id);
 
     // CRUD: añadir, borrar, get by id

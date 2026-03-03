@@ -50,6 +50,10 @@ public class MemoryService : IMemoryService
         return MapToDTO(memory);
     }
 
+    public async Task<List<MemoryModerationDTO>> GetPendingForModerationAsync(List<int>? deceasedIds = null)
+    {
+        return await _repository.GetPendingForModerationAsync(deceasedIds);
+    }
 
 
 
@@ -107,6 +111,11 @@ public class MemoryService : IMemoryService
 
     public async Task<bool> UpdateStatusAsync(int id, MemoryStatus status)
     {
+        if (status != MemoryStatus.Approved && status != MemoryStatus.Rejected)
+        {
+            throw new ArgumentException("El estado de moderación solo puede ser Approved o Rejected.");
+        }
+
         _logger.LogInformation($"Service: Actualizando estado de memoria {id} a {status}");
 
         var existing = await _repository.GetByIdAsync(id);
@@ -134,4 +143,3 @@ public class MemoryService : IMemoryService
 
 
 }
-

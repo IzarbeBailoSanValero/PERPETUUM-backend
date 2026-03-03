@@ -1,8 +1,8 @@
 {
   "version": 2,
-  "dgSpecHash": "i4Ctr4GDJtk=",
+  "dgSpecHash": "KVnkQz4AhI4=",
   "success": true,
-  "projectFilePath": "/Users/izarbe/Desktop/PERPETUUM/PERPETUUM.csproj",
+  "projectFilePath": "/Users/izarbe/Desktop/ENTREGABLE OLIVER/PERPETUUM-backend/PERPETUUM.csproj",
   "expectedPackageFiles": [
     "/Users/izarbe/.nuget/packages/bcrypt.net-next/4.0.3/bcrypt.net-next.4.0.3.nupkg.sha512",
     "/Users/izarbe/.nuget/packages/microsoft.aspnetcore.authentication.jwtbearer/8.0.20/microsoft.aspnetcore.authentication.jwtbearer.8.0.20.nupkg.sha512",

@@ -1,4 +1,5 @@
 using MySqlConnector;
+using PERPETUUM.DTOs;
 using PERPETUUM.Models;
 using System.Data;
 using Microsoft.Extensions.Logging;
@@ -96,6 +97,113 @@ public class MemoryRepository : IMemoryRepository
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error obteniendo memorias APROBADAS para difunto {Id}", deceasedId);
+            throw;
+        }
+    }
+
+    public async Task<List<MemoryModerationDTO>> GetPendingForModerationAsync(List<int>? deceasedIds = null)
+    {
+        var memories = new List<MemoryModerationDTO>();
+
+        try
+        {
+            using var connection = new MySqlConnection(_connectionString);
+            await connection.OpenAsync();
+
+            string memoryQuery = "SELECT Id, CreatedDate, Type, Status, TextContent, MediaURL, AuthorRelation, DeceasedId, UserId FROM Memory WHERE Status = @PendingStatus";
+
+            if (deceasedIds != null && deceasedIds.Count > 0)
+            {
+                memoryQuery += " AND DeceasedId IN (";
+                for (int i = 0; i < deceasedIds.Count; i++)
+                {
+                    if (i > 0) memoryQuery += ",";
+                    memoryQuery += "@DeceasedId" + i;
+                }
+                memoryQuery += ")";
+            }
+
+            memoryQuery += " ORDER BY CreatedDate DESC";
+
+            using (var memoryCommand = new MySqlCommand(memoryQuery, connection))
+            {
+                memoryCommand.Parameters.AddWithValue("@PendingStatus", (int)MemoryStatus.Pending);
+
+                if (deceasedIds != null && deceasedIds.Count > 0)
+                {
+                    for (int i = 0; i < deceasedIds.Count; i++)
+                    {
+                        memoryCommand.Parameters.AddWithValue("@DeceasedId" + i, deceasedIds[i]);
+                    }
+                }
+
+                using var memoryReader = await memoryCommand.ExecuteReaderAsync();
+                while (await memoryReader.ReadAsync())
+                {
+                    memories.Add(new MemoryModerationDTO
+                    {
+                        Id = memoryReader.GetInt32("Id"),
+                        CreatedDate = memoryReader.GetDateTime("CreatedDate"),
+                        Type = memoryReader.GetInt32("Type"),
+                        Status = memoryReader.GetInt32("Status"),
+                        TextContent = memoryReader.IsDBNull("TextContent") ? null : memoryReader.GetString("TextContent"),
+                        MediaURL = memoryReader.IsDBNull("MediaURL") ? null : memoryReader.GetString("MediaURL"),
+                        AuthorRelation = memoryReader.IsDBNull("AuthorRelation") ? null : memoryReader.GetString("AuthorRelation"),
+                        DeceasedId = memoryReader.GetInt32("DeceasedId"),
+                        UserId = memoryReader.GetInt32("UserId")
+                    });
+                }
+            }
+
+            if (memories.Count == 0) return memories;
+
+            var nameByDeceasedId = new Dictionary<int, string>();
+            var ids = new List<int>();
+            var seen = new HashSet<int>();
+
+            foreach (var memory in memories)
+            {
+                if (seen.Add(memory.DeceasedId))
+                {
+                    ids.Add(memory.DeceasedId);
+                }
+            }
+
+            string deceasedQuery = "SELECT Id, Name FROM Deceased WHERE Id IN (";
+            for (int i = 0; i < ids.Count; i++)
+            {
+                if (i > 0) deceasedQuery += ",";
+                deceasedQuery += "@Id" + i;
+            }
+            deceasedQuery += ")";
+
+            using (var deceasedCommand = new MySqlCommand(deceasedQuery, connection))
+            {
+                for (int i = 0; i < ids.Count; i++)
+                {
+                    deceasedCommand.Parameters.AddWithValue("@Id" + i, ids[i]);
+                }
+
+                using var deceasedReader = await deceasedCommand.ExecuteReaderAsync();
+                while (await deceasedReader.ReadAsync())
+                {
+                    nameByDeceasedId[deceasedReader.GetInt32("Id")] = deceasedReader.GetString("Name");
+                }
+            }
+
+            foreach (var memory in memories)
+            {
+                if (nameByDeceasedId.TryGetValue(memory.DeceasedId, out var name))
+                {
+                    memory.DeceasedName = name;
+                }
+            }
+
+            return memories;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error obteniendo memorias pendientes de moderación");
             throw;
         }
     }

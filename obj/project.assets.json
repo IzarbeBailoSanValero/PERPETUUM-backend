@@ -2183,11 +2183,11 @@
   "project": {
     "version": "1.0.0",
     "restore": {
-      "projectUniqueName": "/Users/izarbe/Desktop/PERPETUUM/PERPETUUM.csproj",
+      "projectUniqueName": "/Users/izarbe/Desktop/ENTREGABLE OLIVER/PERPETUUM-backend/PERPETUUM.csproj",
       "projectName": "PERPETUUM",
-      "projectPath": "/Users/izarbe/Desktop/PERPETUUM/PERPETUUM.csproj",
+      "projectPath": "/Users/izarbe/Desktop/ENTREGABLE OLIVER/PERPETUUM-backend/PERPETUUM.csproj",
       "packagesPath": "/Users/izarbe/.nuget/packages/",
-      "outputPath": "/Users/izarbe/Desktop/PERPETUUM/obj/",
+      "outputPath": "/Users/izarbe/Desktop/ENTREGABLE OLIVER/PERPETUUM-backend/obj/",
       "projectStyle": "PackageReference",
       "configFilePaths": [
         "/Users/izarbe/.nuget/NuGet/NuGet.Config"
