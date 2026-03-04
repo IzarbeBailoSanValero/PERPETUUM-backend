@@ -10,6 +10,8 @@ public class MemoryResponseDTO
     public string? TextContent { get; set; }
     public string? MediaURL { get; set; }
     public string? AuthorRelation { get; set; }
+    /// <summary>Nombre del usuario que publicó el recuerdo.</summary>
+    public string? AuthorName { get; set; }
     
     public int UserId { get; set; }
     public int DeceasedId { get; set; }

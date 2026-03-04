@@ -199,14 +199,12 @@ public async Task<bool> UpdateDeceasedAsync(DeceasedUpdateDTO dto)
     {
         Id = mem.Id,
         CreatedDate = mem.CreatedDate,
-        
-        // con toString() para que sale la palabra del enum en vez del número : IA
-        Type = mem.Type.ToString(), 
+        Type = mem.Type.ToString(),
         Status = mem.Status.ToString(),
-        
         TextContent = mem.TextContent,
         MediaURL = mem.MediaURL,
         AuthorRelation = mem.AuthorRelation,
+        AuthorName = mem.AuthorName,
         UserId = mem.UserId,
         DeceasedId = mem.DeceasedId
     };

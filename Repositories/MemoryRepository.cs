@@ -31,7 +31,10 @@ public class MemoryRepository : IMemoryRepository
 
 
                 string query = @"
-                    SELECT Id, CreatedDate, Type, Status, TextContent, MediaURL, AuthorRelation, DeceasedId, UserId FROM Memory WHERE DeceasedId = @Id ORDER BY CreatedDate DESC";
+                    SELECT m.Id, m.CreatedDate, m.Type, m.Status, m.TextContent, m.MediaURL, m.AuthorRelation, m.DeceasedId, m.UserId, u.Name AS AuthorName
+                    FROM Memory m
+                    INNER JOIN `User` u ON m.UserId = u.Id
+                    WHERE m.DeceasedId = @Id ORDER BY m.CreatedDate DESC";
 
                 using (var command = new MySqlCommand(query, connection))
                 {
@@ -41,7 +44,7 @@ public class MemoryRepository : IMemoryRepository
                     {
                         while (await reader.ReadAsync())
                         {
-                            list.Add(MapFromReader(reader));
+                            list.Add(MapFromReaderWithAuthor(reader));
                         }
                     }
                 }
@@ -73,10 +76,11 @@ public class MemoryRepository : IMemoryRepository
                 await connection.OpenAsync();
 
                 string query = @"
-                    SELECT Id, CreatedDate, Type, Status, TextContent, MediaURL, AuthorRelation, DeceasedId, UserId 
-                    FROM Memory 
-                    WHERE DeceasedId = @Id AND Status = @Status 
-                    ORDER BY CreatedDate DESC";
+                    SELECT m.Id, m.CreatedDate, m.Type, m.Status, m.TextContent, m.MediaURL, m.AuthorRelation, m.DeceasedId, m.UserId, u.Name AS AuthorName
+                    FROM Memory m
+                    INNER JOIN `User` u ON m.UserId = u.Id
+                    WHERE m.DeceasedId = @Id AND m.Status = @Status
+                    ORDER BY m.CreatedDate DESC";
 
                 using (var command = new MySqlCommand(query, connection))
                 {
@@ -87,7 +91,7 @@ public class MemoryRepository : IMemoryRepository
                     {
                         while (await reader.ReadAsync())
                         {
-                            list.Add(MapFromReader(reader));
+                            list.Add(MapFromReaderWithAuthor(reader));
                         }
                     }
                 }
@@ -304,7 +308,6 @@ public class MemoryRepository : IMemoryRepository
 
     private Memory MapFromReader(MySqlDataReader reader)
     {
-
         return new Memory
         {
             Id = reader.GetInt32("Id"),
@@ -317,6 +320,19 @@ public class MemoryRepository : IMemoryRepository
             DeceasedId = reader.GetInt32("DeceasedId"),
             UserId = reader.GetInt32("UserId")
         };
+    }
+
+    private Memory MapFromReaderWithAuthor(MySqlDataReader reader)
+    {
+        var memory = MapFromReader(reader);
+        try
+        {
+            var idx = reader.GetOrdinal("AuthorName");
+            if (!reader.IsDBNull(idx))
+                memory.AuthorName = reader.GetString(idx);
+        }
+        catch (IndexOutOfRangeException) { /* columna no presente */ }
+        return memory;
     }
 
 }

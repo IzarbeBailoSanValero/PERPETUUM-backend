@@ -12,4 +12,6 @@ public class Memory
     public string? AuthorRelation { get; set; }//can be null
     public int DeceasedId { get; set; }
     public int UserId { get; set; }
+    /// <summary>Nombre del usuario que publicó el recuerdo. Se rellena al hacer JOIN con User en consultas de listado.</summary>
+    public string? AuthorName { get; set; }
 }

@@ -383,11 +383,9 @@ public class DeceasedRepository : IDeceasedRepository
 
                     if (orderByColumn != null)
                     {
-                        sqlBuilder.Append($" ORDER BY {orderByColumn} ASC ");
+                        string direction = string.Equals(searchDTO.SortOrder, "DESC", StringComparison.OrdinalIgnoreCase) ? "DESC" : "ASC";
+                        sqlBuilder.Append($" ORDER BY {orderByColumn} {direction} ");
                     }
-
-
-
                 }
 
                 sqlBuilder.Append(";");

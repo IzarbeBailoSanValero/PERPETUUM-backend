@@ -137,6 +137,7 @@ public class MemoryService : IMemoryService
             TextContent = m.TextContent,
             MediaURL = m.MediaURL,
             AuthorRelation = m.AuthorRelation,
+            AuthorName = m.AuthorName,
             DeceasedId = m.DeceasedId,
             UserId = m.UserId
         };

@@ -84,18 +84,21 @@ public async Task<ActionResult> Search([FromQuery] DeceasedSearchDTO searchDTO)
     {
         List<DeceasedResponseDTO> result = await _deceasedService.SearchDeceasedAsync(searchDTO);
 
-        //Parámetros de paginación
-        int pageSize = 9; //el del Frontend
+        // Parámetros de paginación desde el DTO (frontend envía Page y PageSize)
+        int pageSize = searchDTO.PageSize ?? 9;
+        if (pageSize < 1) pageSize = 9;
         int totalItems = result.Count;
         int totalPages = (int)Math.Ceiling((double)totalItems / pageSize);
+        if (totalPages < 1) totalPages = 1;
 
-        // 3. Recorto la lista aquí para enviar unos pocos registros y no todos --> pagin en memoria
-        int pageNumber = 1; // por defecto
+        int pageNumber = searchDTO.Page ?? 1;
+        if (pageNumber < 1) pageNumber = 1;
+        if (pageNumber > totalPages) pageNumber = totalPages;
 
         var paginatedResult = result
-            .Skip((pageNumber - 1) * pageSize)          //Omite los elementos de las páginas anteriores.
-            .Take(pageSize)                             //Toma solo los elementos que caben en una página o sino los que haya
-            .ToList();                                   //  Convierte el resultado en una lista normal para devolverla.
+            .Skip((pageNumber - 1) * pageSize)
+            .Take(pageSize)
+            .ToList();
 
         
         return Ok(new {
