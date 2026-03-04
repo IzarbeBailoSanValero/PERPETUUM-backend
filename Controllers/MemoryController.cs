@@ -3,6 +3,8 @@ using PERPETUUM.DTOs;
 using PERPETUUM.Models; //para utilizar los roles en la protección
 using PERPETUUM.Services;
 using Microsoft.AspNetCore.Authorization;
+using CloudinaryDotNet;
+using CloudinaryDotNet.Actions;
 
 using System.Security.Claims;
 namespace PERPETUUM.Controllers;
@@ -16,12 +18,19 @@ public class MemoryController : ControllerBase
     private readonly IMemoryService _memoryService;
     private readonly ILogger<MemoryController> _logger;
     private readonly IDeceasedService _deceasedService;
+    private readonly Cloudinary _cloudinary;
 
-    public MemoryController(IMemoryService service, ILogger<MemoryController> logger, IMemorialGuardianService guardianService, IDeceasedService deceasedService)
+    public MemoryController(
+        IMemoryService service,
+        ILogger<MemoryController> logger,
+        IMemorialGuardianService guardianService,
+        IDeceasedService deceasedService,
+        Cloudinary cloudinary)
     {
         _memoryService = service;
         _logger = logger;
         _deceasedService = deceasedService;
+        _cloudinary = cloudinary;
     }
 
 
@@ -44,7 +53,7 @@ public class MemoryController : ControllerBase
 
 
     [HttpPost]
-    [Authorize(Roles = Roles.StandardUser)]//extraigo el id de usuario del token de user --> se asigna a l objeto antes de llamar al service
+    [Authorize(Roles = Roles.StandardUser + "," + Roles.Guardian)]//extraigo el id de usuario del token --> se asigna a l objeto antes de llamar al service
     public async Task<ActionResult> AddMemory([FromBody] MemoryCreateDTO dto)
     {
         if (!ModelState.IsValid)
@@ -81,6 +90,85 @@ public class MemoryController : ControllerBase
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error interno al procesar create deceased en controller");
+            return StatusCode(500, "Error interno al procesar petición");
+        }
+    }
+
+    [HttpPost("photo")]
+    [Authorize(Roles = Roles.StandardUser + "," + Roles.Guardian)]
+    [RequestSizeLimit(15_000_000)] // 15MB
+    public async Task<ActionResult> AddMemoryWithPhoto([FromForm] MemoryPhotoCreateDTO dto)
+    {
+        if (!ModelState.IsValid)
+        {
+            _logger.LogWarning("Fallo al validar memoria (foto) por datos inválidos.");
+            return BadRequest(ModelState);
+        }
+
+        try
+        {
+            var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier);
+            if (userIdClaim == null) return Unauthorized();
+            int currentUserId = int.Parse(userIdClaim.Value);
+
+            if (dto.Photo == null || dto.Photo.Length == 0)
+            {
+                return BadRequest("La imagen es obligatoria.");
+            }
+
+            if (dto.Type != 3)
+            {
+                return BadRequest("Este endpoint es solo para recuerdos con foto (Type=3).");
+            }
+
+            if (dto.Photo.ContentType == null || !dto.Photo.ContentType.StartsWith("image/", StringComparison.OrdinalIgnoreCase))
+            {
+                return BadRequest("El archivo debe ser una imagen.");
+            }
+
+            await using var stream = dto.Photo.OpenReadStream();
+            var uploadParams = new ImageUploadParams
+            {
+                File = new FileDescription(dto.Photo.FileName, stream),
+                Folder = $"perpetuum/memories/deceased-{dto.DeceasedId}",
+                UseFilename = true,
+                UniqueFilename = true,
+                Overwrite = false
+            };
+
+            var uploadResult = await _cloudinary.UploadAsync(uploadParams);
+            if (uploadResult.Error != null)
+            {
+                _logger.LogError("Cloudinary error: {Message}", uploadResult.Error.Message);
+                return StatusCode(502, "Error subiendo la imagen.");
+            }
+            var secureUrl = uploadResult.SecureUrl?.ToString();
+            if (string.IsNullOrWhiteSpace(secureUrl))
+            {
+                _logger.LogError("Cloudinary upload sin SecureUrl para deceased {DeceasedId}", dto.DeceasedId);
+                return StatusCode(502, "Error subiendo la imagen.");
+            }
+
+            var memoryDto = new MemoryCreateDTO
+            {
+                DeceasedId = dto.DeceasedId,
+                Type = 3,
+                TextContent = dto.TextContent,
+                MediaURL = secureUrl,
+                AuthorRelation = dto.AuthorRelation
+            };
+
+            var newId = await _memoryService.AddMemoryAsync(memoryDto, currentUserId);
+            return CreatedAtAction(nameof(GetByDeceased), new { deceasedId = dto.DeceasedId }, new { id = newId, mediaUrl = memoryDto.MediaURL });
+        }
+        catch (ArgumentException ex)
+        {
+            _logger.LogWarning("Reglas de negocio (memory photo): {Message}", ex.Message);
+            return Conflict(ex.Message);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error interno al crear memoria con foto.");
             return StatusCode(500, "Error interno al procesar petición");
         }
     }

@@ -1,17 +1,17 @@
 {
   "format": 1,
   "restore": {
-    "/Users/izarbe/Desktop/PERPETUUM/PERPETUUM.csproj": {}
+    "/Users/izarbe/Desktop/ENTREGABLE OLIVER copy/PERPETUUM-backend/PERPETUUM.csproj": {}
   },
   "projects": {
-    "/Users/izarbe/Desktop/PERPETUUM/PERPETUUM.csproj": {
+    "/Users/izarbe/Desktop/ENTREGABLE OLIVER copy/PERPETUUM-backend/PERPETUUM.csproj": {
       "version": "1.0.0",
       "restore": {
-        "projectUniqueName": "/Users/izarbe/Desktop/PERPETUUM/PERPETUUM.csproj",
+        "projectUniqueName": "/Users/izarbe/Desktop/ENTREGABLE OLIVER copy/PERPETUUM-backend/PERPETUUM.csproj",
         "projectName": "PERPETUUM",
-        "projectPath": "/Users/izarbe/Desktop/PERPETUUM/PERPETUUM.csproj",
-        "packagesPath": "/Users/izarbe/.nuget/packages/",
-        "outputPath": "/Users/izarbe/Desktop/PERPETUUM/obj/",
+        "projectPath": "/Users/izarbe/Desktop/ENTREGABLE OLIVER copy/PERPETUUM-backend/PERPETUUM.csproj",
+        "packagesPath": "/var/folders/7s/v9dlymxn01z50k4fmb303p340000gn/T/cursor-sandbox-cache/ac2ca4a375990e2b3e1cc86fa2797168/nuget",
+        "outputPath": "/Users/izarbe/Desktop/ENTREGABLE OLIVER copy/PERPETUUM-backend/obj/",
         "projectStyle": "PackageReference",
         "configFilePaths": [
           "/Users/izarbe/.nuget/NuGet/NuGet.Config"
@@ -47,6 +47,10 @@
               "target": "Package",
               "version": "[4.0.3, )"
             },
+            "CloudinaryDotNet": {
+              "target": "Package",
+              "version": "[1.28.0, )"
+            },
             "Microsoft.AspNetCore.Authentication.JwtBearer": {
               "target": "Package",
               "version": "[8.0.20, )"
@@ -66,6 +70,10 @@
             "Swashbuckle.AspNetCore": {
               "target": "Package",
               "version": "[6.6.2, )"
+            },
+            "dotenv.net": {
+              "target": "Package",
+              "version": "[4.0.1, )"
             }
           },
           "imports": [
