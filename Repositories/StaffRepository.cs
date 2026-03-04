@@ -62,7 +62,7 @@ public class StaffRepository : IStaffRepository
             using (var connection = new MySqlConnection(_connectionString))
             {
                 await connection.OpenAsync();
-                string query = "SELECT Id, FuneralHomeId, Name, Email, DNI FROM Staff WHERE Id = @Id";
+                string query = "SELECT Id, FuneralHomeId, Name, Email, DNI, IsAdmin FROM Staff WHERE Id = @Id";
 
                 using (var command = new MySqlCommand(query, connection))
                 {
@@ -99,7 +99,7 @@ public class StaffRepository : IStaffRepository
             using (var connection = new MySqlConnection(_connectionString))
             {
                 await connection.OpenAsync();
-                string query = "SELECT Id, FuneralHomeId, Name, Email, DNI FROM Staff WHERE FuneralHomeId = @FhId";
+                string query = "SELECT Id, FuneralHomeId, Name, Email, DNI, IsAdmin FROM Staff WHERE FuneralHomeId = @FhId AND IsAdmin = 0";
                 //había pensado que igual habia que comprobar aquí si la funeraria existe pero es mejor en el service porque: si lo metes aquí, harías dos consultas sql siempre. es mejor que lo compruebe el service y solo se hace una si existe, es la capa de acceso a datos rápida. 
                 using (var command = new MySqlCommand(query, connection))
                 {
@@ -209,6 +209,29 @@ public class StaffRepository : IStaffRepository
         }
     }
 
+    public async Task<bool> UpdatePasswordAsync(int staffId, string passwordHash)
+    {
+        try
+        {
+            using (var connection = new MySqlConnection(_connectionString))
+            {
+                await connection.OpenAsync();
+                string query = "UPDATE Staff SET PasswordHash = @PasswordHash WHERE Id = @Id";
+                using (var command = new MySqlCommand(query, connection))
+                {
+                    command.Parameters.AddWithValue("@Id", staffId);
+                    command.Parameters.AddWithValue("@PasswordHash", passwordHash);
+                    return await command.ExecuteNonQueryAsync() > 0;
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error en UpdatePassword Staff");
+            throw;
+        }
+    }
+
 
 
 // --- VALIDACIONES EXISTS (Explícitas y separadas) ---
@@ -291,14 +314,15 @@ public class StaffRepository : IStaffRepository
     using var reader = await command.ExecuteReaderAsync();
     if (await reader.ReadAsync())
     {
-        return new Staff //con passwordhash y isAdmin
-        { 
+        int ordinalFh = reader.GetOrdinal("FuneralHomeId");
+        return new Staff
+        {
             Id = reader.GetInt32("Id"),
             Name = reader.GetString("Name"),
             Email = reader.GetString("Email"),
-            PasswordHash = reader.GetString("PasswordHash"), 
+            PasswordHash = reader.GetString("PasswordHash"),
             IsAdmin = reader.GetBoolean("IsAdmin"),
-            FuneralHomeId = reader.GetInt32("FuneralHomeId")
+            FuneralHomeId = reader.IsDBNull(ordinalFh) ? null : reader.GetInt32(ordinalFh)
         };
     }
     return null;
@@ -310,11 +334,11 @@ public class StaffRepository : IStaffRepository
         return new Staff
         {
             Id = reader.GetInt32("Id"),
-            //antes de leerlo hay que verificar que no sea nula y pete al leerla
-            FuneralHomeId = reader.IsDBNull(reader.GetOrdinal("FuneralHomeId"))? null : reader.GetInt32("FuneralHomeId"),
+            FuneralHomeId = reader.IsDBNull(reader.GetOrdinal("FuneralHomeId")) ? null : reader.GetInt32("FuneralHomeId"),
             Name = reader.GetString("Name"),
             Email = reader.GetString("Email"),
-            DNI = reader.GetString("DNI")
+            DNI = reader.GetString("DNI"),
+            IsAdmin = reader.GetBoolean("IsAdmin")
         };
     }
 }

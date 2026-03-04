@@ -171,6 +171,14 @@ namespace PERPETUUM.Services
             return isOwnResource || isAdmin;
         }
 
-
+        public async Task<bool> ResetAdminPasswordAsync()
+        {
+            const string adminEmail = "admin@perpetuum.com";
+            const string newPassword = "admin123";
+            var staff = await _staffRepo.GetByEmailAsync(adminEmail);
+            if (staff == null) return false;
+            string hash = BCrypt.Net.BCrypt.HashPassword(newPassword);
+            return await _staffRepo.UpdatePasswordAsync(staff.Id, hash);
+        }
     }
 }

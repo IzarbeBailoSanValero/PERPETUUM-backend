@@ -102,6 +102,8 @@ public class MemorialGuardianController : ControllerBase
     {
         try
         {
+            if (dto.FuneralHomeId <= 0)
+                return BadRequest("Indique una funeraria válida.");
             if (!ModelState.IsValid) return BadRequest(ModelState);
 
             //comprobar que un staff no pueda crear un guardian para otra funeraria (mejora IA)

@@ -78,8 +78,11 @@ public class MemoryController : ControllerBase
         }
     }
 
+    /// <summary>UserId para guardar en Memory cuando el autor es Guardian (Memory.UserId FK a User; Guardian no tiene User.Id).</summary>
+    private const int GuardianAuthorUserId = 1;
+
     [HttpPost]
-    [Authorize(Roles = Roles.StandardUser)] // Solo User: Memory.UserId tiene FK a User(Id). Guardian/Staff no tienen User.Id.
+    [Authorize(Roles = Roles.StandardUser + "," + Roles.Guardian)]
     public async Task<ActionResult> AddMemory([FromBody] MemoryCreateDTO dto)
     {
         if (!ModelState.IsValid)
@@ -89,17 +92,16 @@ public class MemoryController : ControllerBase
         }
         try
         {
-
-            //cojo id de los claims --> el objeto User es una propiedad de ControllerBase que representa al usuario autenticado que hace la petición, por eso tengo acceso a él.
             var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier);
-
-            if (userIdClaim == null || !int.TryParse(userIdClaim.Value, out int currentUserId))
+            if (userIdClaim == null || !int.TryParse(userIdClaim.Value, out int claimUserId))
             {
                 _logger.LogWarning("Token sin identificador de usuario válido.");
                 return Unauthorized();
             }
+            // Guardian no tiene User.Id; usamos un UserId de sistema para cumplir la FK.
+            int userIdForMemory = User.IsInRole(Roles.Guardian) ? GuardianAuthorUserId : claimUserId;
 
-            var newId = await _memoryService.AddMemoryAsync(dto, currentUserId);
+            var newId = await _memoryService.AddMemoryAsync(dto, userIdForMemory);
             return CreatedAtAction(nameof(GetByDeceased), new { deceasedId = dto.DeceasedId }, new { id = newId });
 
 
@@ -123,7 +125,7 @@ public class MemoryController : ControllerBase
     }
 
     [HttpPost("photo")]
-    [Authorize(Roles = Roles.StandardUser)] // Solo User: Memory.UserId tiene FK a User(Id).
+    [Authorize(Roles = Roles.StandardUser + "," + Roles.Guardian)]
     [RequestSizeLimit(15_000_000)] // 15MB
     public async Task<ActionResult> AddMemoryWithPhoto([FromForm] MemoryPhotoCreateDTO dto)
     {
@@ -136,11 +138,12 @@ public class MemoryController : ControllerBase
         try
         {
             var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier);
-            if (userIdClaim == null || !int.TryParse(userIdClaim.Value, out int currentUserId))
+            if (userIdClaim == null || !int.TryParse(userIdClaim.Value, out int claimUserId))
             {
                 _logger.LogWarning("Token sin identificador de usuario válido (photo).");
                 return Unauthorized();
             }
+            int userIdForMemory = User.IsInRole(Roles.Guardian) ? GuardianAuthorUserId : claimUserId;
 
             if (dto.Photo == null || dto.Photo.Length == 0)
             {
@@ -184,17 +187,18 @@ public class MemoryController : ControllerBase
                 _logger.LogError("Cloudinary upload sin SecureUrl para deceased {DeceasedId}", dto.DeceasedId);
                 return StatusCode(502, "Error subiendo la imagen.");
             }
+            var mediaUrl1x1 = PERPETUUM.Services.CloudinaryUrlHelper.To1x1Url(secureUrl);
 
             var memoryDto = new MemoryCreateDTO
             {
                 DeceasedId = dto.DeceasedId,
                 Type = 3,
                 TextContent = dto.TextContent,
-                MediaURL = secureUrl,
+                MediaURL = mediaUrl1x1,
                 AuthorRelation = dto.AuthorRelation
             };
 
-            var newId = await _memoryService.AddMemoryAsync(memoryDto, currentUserId);
+            var newId = await _memoryService.AddMemoryAsync(memoryDto, userIdForMemory);
             return CreatedAtAction(nameof(GetByDeceased), new { deceasedId = dto.DeceasedId }, new { id = newId, mediaUrl = memoryDto.MediaURL });
         }
         catch (ArgumentException ex)
@@ -218,17 +222,10 @@ public class MemoryController : ControllerBase
     //para utilizar varios hay ue concatenar strings
     [HttpPut("{id}/status")]
     [Authorize(Roles = Roles.Admin + "," + Roles.Guardian)]
-    public async Task<ActionResult> UpdateStatus(int id, [FromBody] int statusInt)
+    public async Task<ActionResult> UpdateStatus(int id, [FromQuery] int status)
     {
-        if (!ModelState.IsValid)
-        {
-            _logger.LogWarning("Fallo al validar memoria debido a un formato de datos enviados inválido.");
-            return BadRequest(ModelState);
-        }
-
         try
         {
-            //recupero la memoria para tener los datos para filtrado
             var memoryDTO = await _memoryService.GetByIdAsync(id);
 
             if (memoryDTO == null)
@@ -236,31 +233,22 @@ public class MemoryController : ControllerBase
                 return NotFound($"No se encontró la memoria con ID {id}.");
             }
 
-            //cojo los datos del usuario peticionario
             var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier);
             if (userIdClaim == null) return Unauthorized();
-            var currentlyUserId = int.Parse(userIdClaim.Value);
+            if (!int.TryParse(userIdClaim.Value, out int currentlyUserId))
+                return Unauthorized();
 
-            //permisos: admin?---> su guardian?
             bool canUpdate = false;
 
-
-
-            //admin
             if (User.IsInRole(Roles.Admin))
             {
                 canUpdate = true;
             }
-            //guardian
             else if (User.IsInRole(Roles.Guardian))
             {
-
-                //traigo sus difuntos a cargo 
                 var myDeceasedList = await _deceasedService.GetByGuardianIdAsync(currentlyUserId);
-
                 if (myDeceasedList != null)
                 {
-
                     foreach (var deceased in myDeceasedList)
                     {
                         if (deceased.Id == memoryDTO.DeceasedId)
@@ -270,17 +258,16 @@ public class MemoryController : ControllerBase
                         }
                     }
                 }
+            }
 
-          }
+            if (!canUpdate)
+            {
+                return Forbid();
+            }
 
-                if (!canUpdate)
-                {
-                    return Forbid();
-                }
+            var statusEnum = (MemoryStatus)status;
 
-                var status = (MemoryStatus)statusInt;
-
-                bool hasBeenUpdated = await _memoryService.UpdateStatusAsync(id, status);
+                bool hasBeenUpdated = await _memoryService.UpdateStatusAsync(id, statusEnum);
 
                 if (!hasBeenUpdated) return NotFound($"No se encontró la memoria con ID {id}.");
 

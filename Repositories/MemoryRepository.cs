@@ -187,6 +187,10 @@ public class MemoryRepository : IMemoryRepository
 
     public async Task<List<(Memory memory, string deceasedName)>> GetPendingWithDeceasedNameAsync(List<int>? deceasedIds)
     {
+        // Guardian con lista vacía: no mostrar ningún pendiente (solo sus difuntos).
+        if (deceasedIds != null && deceasedIds.Count == 0)
+            return new List<(Memory, string)>();
+
         var list = new List<(Memory, string)>();
         try
         {

@@ -63,6 +63,9 @@ public async Task<List<DeceasedSummaryDTO>> GetByGuardianIdAsync(int guardianId)
 
     public async Task<int> CreateDeceasedAsync(DeceasedCreateDTO dto)
     {
+        if (string.IsNullOrWhiteSpace(dto.PhotoURL))
+            throw new ArgumentException("La foto es obligatoria (indica PhotoURL o sube una imagen).");
+
         ValidateDates(dto.BirthDate, dto.DeathDate);
 
         bool exists = await _repository.ExistsByDniAsync(dto.Dni);

@@ -5,6 +5,8 @@ using PERPETUUM.Models;
 using System.Security.Claims;
 using Microsoft.Extensions.Logging;
 using Microsoft.AspNetCore.Authorization;
+using CloudinaryDotNet;
+using CloudinaryDotNet.Actions;
 
 namespace PERPETUUM.Controllers
 {
@@ -17,12 +19,14 @@ namespace PERPETUUM.Controllers
         private readonly IDeceasedService _deceasedService;
         private readonly ILogger<DeceasedController> _logger;
         private readonly IStaffService _staffService;
+        private readonly PERPETUUM.Services.CloudinaryWrapper _cloudinaryWrapper;
 
-        public DeceasedController(IDeceasedService deceasedService, ILogger<DeceasedController> logger, IStaffService staffService)
+        public DeceasedController(IDeceasedService deceasedService, ILogger<DeceasedController> logger, IStaffService staffService, PERPETUUM.Services.CloudinaryWrapper cloudinaryWrapper)
         {
             _deceasedService = deceasedService;
             _staffService = staffService;
             _logger = logger;
+            _cloudinaryWrapper = cloudinaryWrapper;
         }
 
 
@@ -112,6 +116,10 @@ public async Task<ActionResult> Search([FromQuery] DeceasedSearchDTO searchDTO)
         [Authorize(Roles = Roles.Admin + "," + Roles.Staff)]
         public async Task<ActionResult<DeceasedResponseDTO>> CreateDeceased([FromBody] DeceasedCreateDTO deceasedDTO)
         {
+            if (deceasedDTO.FuneralHomeId <= 0)
+                return BadRequest("Indique una funeraria válida.");
+            if (string.IsNullOrWhiteSpace(deceasedDTO.PhotoURL))
+                return BadRequest("La URL de la foto es obligatoria al crear por JSON.");
             if (!ModelState.IsValid)
             {
                 _logger.LogWarning("Fallo al validar difunto debido a un formato de datos enviados inválido.");
@@ -120,7 +128,6 @@ public async Task<ActionResult> Search([FromQuery] DeceasedSearchDTO searchDTO)
 
             try
             {
-
                 if (User.IsInRole(Roles.Staff))
                 {
                     var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier);
@@ -148,7 +155,6 @@ public async Task<ActionResult> Search([FromQuery] DeceasedSearchDTO searchDTO)
             }
             catch (ArgumentException ex)
             {
-
                 _logger.LogWarning("Error respecto a las reglas de negocio en create");
                 return Conflict(ex.Message);
             }
@@ -159,6 +165,70 @@ public async Task<ActionResult> Search([FromQuery] DeceasedSearchDTO searchDTO)
             }
         }
 
+        [HttpPost("with-photo")]
+        [Authorize(Roles = Roles.Admin + "," + Roles.Staff)]
+        [RequestSizeLimit(10_000_000)]
+        public async Task<ActionResult<DeceasedResponseDTO>> CreateDeceasedWithPhoto([FromForm] DeceasedCreateDTO dto)
+        {
+            if (dto.Photo != null && dto.Photo.Length > 0)
+            {
+                if (!_cloudinaryWrapper.IsConfigured || _cloudinaryWrapper.Instance == null)
+                    return StatusCode(503, "Subida de fotos no disponible. Configure CLOUDINARY_URL.");
+                if (dto.Photo.ContentType == null || !dto.Photo.ContentType.StartsWith("image/", StringComparison.OrdinalIgnoreCase))
+                    return BadRequest("El archivo debe ser una imagen.");
+
+                await using var stream = dto.Photo.OpenReadStream();
+                var uploadParams = new ImageUploadParams
+                {
+                    File = new FileDescription(dto.Photo.FileName, stream),
+                    Folder = "perpetuum/deceased",
+                    UseFilename = true,
+                    UniqueFilename = true,
+                    Overwrite = false
+                };
+                var uploadResult = await _cloudinaryWrapper.Instance.UploadAsync(uploadParams);
+                if (uploadResult.Error != null)
+                {
+                    _logger.LogError("Cloudinary error: {Message}", uploadResult.Error.Message);
+                    return StatusCode(502, "Error subiendo la imagen.");
+                }
+                var url = uploadResult.SecureUrl?.ToString();
+                if (string.IsNullOrWhiteSpace(url))
+                    return StatusCode(502, "Error subiendo la imagen.");
+                dto.PhotoURL = PERPETUUM.Services.CloudinaryUrlHelper.To1x1Url(url);
+            }
+
+            if (string.IsNullOrWhiteSpace(dto.PhotoURL))
+                return BadRequest("Sube una imagen del difunto.");
+            if (dto.FuneralHomeId <= 0)
+                return BadRequest("Indique una funeraria válida.");
+
+            if (User.IsInRole(Roles.Staff))
+            {
+                var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier);
+                if (userIdClaim == null) return Unauthorized();
+                if (!int.TryParse(userIdClaim.Value, out int currentUserId)) return Unauthorized();
+                var staffProfile = await _staffService.GetByIdAsync(currentUserId);
+                if (staffProfile == null || staffProfile.FuneralHomeId != dto.FuneralHomeId)
+                    return Forbid();
+            }
+
+            try
+            {
+                int newId = await _deceasedService.CreateDeceasedAsync(dto);
+                var created = await _deceasedService.GetDeceasedProfileAsync(newId);
+                return CreatedAtAction(nameof(GetDeceased), new { deceasedId = newId }, created);
+            }
+            catch (ArgumentException ex)
+            {
+                return Conflict(ex.Message);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error al crear difunto con foto");
+                return StatusCode(500, "Error interno al procesar petición");
+            }
+        }
 
         [HttpPut("{deceasedId}")]
         [Authorize(Roles = Roles.Admin + "," + Roles.Staff + "," + Roles.Guardian)]

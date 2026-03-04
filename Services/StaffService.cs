@@ -149,10 +149,12 @@ public class StaffService : IStaffService
         return new StaffResponseDTO
         {
             Id = model.Id,
-            FuneralHomeId = model.FuneralHomeId,
+            // Administradores globales no tienen funeraria asignada (no exponer FuneralHomeId aunque en BD tenga valor legacy)
+            FuneralHomeId = model.IsAdmin ? null : model.FuneralHomeId,
             Name = model.Name,
             Email = model.Email,
-            DNI = model.DNI
+            DNI = model.DNI,
+            IsAdmin = model.IsAdmin
         };
     }
 

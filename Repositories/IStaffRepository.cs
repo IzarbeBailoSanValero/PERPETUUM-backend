@@ -14,4 +14,5 @@ public interface IStaffRepository
     Task<bool> ExistsByDniAsync(string dni, int? excludeId = null);
     Task<List<Staff>> GetByFuneralHomeIdAsync(int funeralHomeId);
     Task<Staff?> GetByEmailAsync(string email);
+    Task<bool> UpdatePasswordAsync(int staffId, string passwordHash);
 }

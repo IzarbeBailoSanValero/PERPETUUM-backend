@@ -61,15 +61,22 @@ namespace PERPETUUM.Controllers
             }
         }
 
-        // //para poder generar un hash y crear un administrador para loggearme con él (problema bcrypt) // busco la solución
-        // [HttpGet("test-hash")]
-        // public IActionResult GetHash()
-        // {
-        //     return Ok(BCrypt.Net.BCrypt.HashPassword("admin123"));
-        // }
-
-        // //resultado -->  $2a$11$jNRYr2iZD2xWNHtuXD6Gj.S4kU6OsQd/B/G49eo49pbuzOORQ1oh6
-
-
+        /// <summary>Restablece la contraseña de admin@perpetuum.com a "admin123". Llamar si el login falla (ej. BD con hash distinto).</summary>
+        [HttpPost("reset-admin-password")]
+        [AllowAnonymous]
+        public async Task<IActionResult> ResetAdminPassword()
+        {
+            try
+            {
+                bool ok = await _authService.ResetAdminPasswordAsync();
+                if (!ok)
+                    return NotFound(new { message = "No existe el usuario admin@perpetuum.com en Staff." });
+                return Ok(new { message = "Contraseña de admin@perpetuum.com restablecida a: admin123" });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { message = "Error al restablecer", detail = ex.Message });
+            }
+        }
     }
 }
