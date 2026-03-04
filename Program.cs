@@ -1,21 +1,21 @@
-
-
-/*program.cs se encarga de: punto de entrada de la api + iniciar + conectar + inyectar + arrancar*/
-using PERPETUUM.Repositories; //para añadir a adscoped
-using PERPETUUM.Services; //para añadir a addscoped using System;
+using PERPETUUM.Repositories;
+using PERPETUUM.Services;
 using Serilog;
-//JWT::: dependencias para 
+
+// JWT
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
 
-/*genera automáticamente el static void Main(string[] args) por detrás. El args se pasa a CreateBuilder(args) para que la aplicación pueda recibir parámetros de línea de comandos.*/
+// Cloudinary
+using CloudinaryDotNet;
+using dotenv.net;
 
-//configuro inicio de aplicación
 var builder = WebApplication.CreateBuilder(args);
 
-
-//registro cors --> creo una política que permite todas las peticiones
+// =========================
+// CORS
+// =========================
 builder.Services.AddCors(options =>
 {
     options.AddPolicy("PermitirTodo", policy =>
@@ -26,24 +26,25 @@ builder.Services.AddCors(options =>
     });
 });
 
-
-
-// SERILOG:::
-// Definimos que queremos escribir en consola y en un archivo
+// =========================
+// SERILOG
+// =========================
 Log.Logger = new LoggerConfiguration()
-    .WriteTo.Console() // Para ver todo en la consola negra
-    .WriteTo.File("Logs.log", 
-        restrictedToMinimumLevel: Serilog.Events.LogEventLevel.Error) // sólo escribe si es ERROR o CRITICAL
+    .WriteTo.Console()
+    .WriteTo.File("Logs.log",
+        restrictedToMinimumLevel: Serilog.Events.LogEventLevel.Error)
     .CreateLogger();
 
-// Le decimos al Host que use Serilog en lugar del logger por defecto
-builder.Host.UseSerilog(); 
+builder.Host.UseSerilog();
 
-
-//añadir servicios de controlador
+// =========================
+// CONTROLLERS
+// =========================
 builder.Services.AddControllers();
 
-//JWT::: le decimos a la palicacion que parametros validaremos en el jwt. El builder.configuration los cogera del appsettings.json //TODO: si cambia ubicacion / puertos de fornt, back cambiar acorde appsettings
+// =========================
+// JWT
+// =========================
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
    .AddJwtBearer(opt =>
    {
@@ -55,99 +56,114 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
            ValidateIssuerSigningKey = true,
            ValidIssuer = builder.Configuration["JWT:ValidIssuer"],
            ValidAudience = builder.Configuration["JWT:ValidAudience"],
-           IssuerSigningKey = new SymmetricSecurityKey(System.Text.Encoding.UTF8.GetBytes(builder.Configuration["JWT:SecretKey"]))
+           IssuerSigningKey = new SymmetricSecurityKey(
+               System.Text.Encoding.UTF8.GetBytes(builder.Configuration["JWT:SecretKey"])
+           ),
+           ClockSkew = TimeSpan.Zero
        };
    });
 
+// =========================
+// CLOUDINARY (CORRECTO)
+// =========================
+DotEnv.Load(options: new DotEnvOptions(probeForEnv: true));
 
+builder.Services.AddSingleton(_ =>
+{
+    var cloudinaryUrl = Environment.GetEnvironmentVariable("CLOUDINARY_URL");
 
+    var cloudinary = new Cloudinary(cloudinaryUrl);
+    cloudinary.Api.Secure = true;
 
-//DEPENDENCIAS DEL PROYECTO:::
-//deceased 
+    return cloudinary;
+});
+
+// =========================
+// DEPENDENCIAS DEL PROYECTO
+// =========================
+
+// Deceased
 builder.Services.AddScoped<IDeceasedRepository, DeceasedRepository>();
 builder.Services.AddScoped<IDeceasedService, DeceasedService>();
 
-//FuneralHome 
+// FuneralHome
 builder.Services.AddScoped<IFuneralHomeRepository, FuneralHomeRepository>();
 builder.Services.AddScoped<IFuneralHomeService, FuneralHomeService>();
 
-//MemorialGuardian 
+// MemorialGuardian
 builder.Services.AddScoped<IMemorialGuardianRepository, MemorialGuardianRepository>();
 builder.Services.AddScoped<IMemorialGuardianService, MemorialGuardianService>();
 
-//Memory 
+// Memory
 builder.Services.AddScoped<IMemoryRepository, MemoryRepository>();
 builder.Services.AddScoped<IMemoryService, MemoryService>();
 
-//Staff 
+// Staff
 builder.Services.AddScoped<IStaffRepository, StaffRepository>();
 builder.Services.AddScoped<IStaffService, StaffService>();
 
-//User
+// User
 builder.Services.AddScoped<IUserRepository, UserRepository>();
 builder.Services.AddScoped<IUserService, UserService>();
 
-
-//Auth
+// Auth
 builder.Services.AddScoped<IAuthService, AuthService>();
 
-
-
-//SWAGGER:::añado swagger siembre
-//JWT::: configuración en swagger. para que añada boton de autorizar y nos devuelva el token. Se guarda en memoria
+// =========================
+// SWAGGER
+// =========================
 builder.Services.AddEndpointsApiExplorer();
-builder.Services.AddSwaggerGen(opt => //le dice a swagger que usamos jwt con estandard beared y que se deben enviar en al cabecera. Swagger muestra boton authorize
+builder.Services.AddSwaggerGen(opt =>
 {
-   opt.SwaggerDoc("v1", new OpenApiInfo { Title = "MyAPI", Version = "v1" });
-   opt.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
-   {
-       In = ParameterLocation.Header,
-       Description = "Please enter token",
-       Name = "Authorization",
-       Type = SecuritySchemeType.Http,
-       BearerFormat = "JWT",
-       Scheme = "bearer"
-   });
+    opt.SwaggerDoc("v1", new OpenApiInfo { Title = "MyAPI", Version = "v1" });
 
+    opt.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
+    {
+        In = ParameterLocation.Header,
+        Description = "Introduce tu token JWT",
+        Name = "Authorization",
+        Type = SecuritySchemeType.Http,
+        BearerFormat = "JWT",
+        Scheme = "bearer"
+    });
 
-   opt.AddSecurityRequirement(new OpenApiSecurityRequirement
-   {
-       {
-           new OpenApiSecurityScheme
-           {
-               Reference = new OpenApiReference
-               {
-                   Type=ReferenceType.SecurityScheme,
-                   Id="Bearer"
-               }
-           },
-           new string[]{}
-       }
-   });
+    opt.AddSecurityRequirement(new OpenApiSecurityRequirement
+    {
+        {
+            new OpenApiSecurityScheme
+            {
+                Reference = new OpenApiReference
+                {
+                    Type = ReferenceType.SecurityScheme,
+                    Id = "Bearer"
+                }
+            },
+            new string[]{}
+        }
+    });
 });
 
+// =========================
+// BUILD APP
+// =========================
+var app = builder.Build();
 
-// construye app con la configuración creada.
-var app = builder.Build();  
-
-//habilito la política de cors que he registrado
+// CORS
 app.UseCors("PermitirTodo");
 
-//SWAGGER:::
-if (app.Environment.IsDevelopment()) { 
-    app.UseSwagger(); 
-    app.UseSwaggerUI(); 
-    }
+// Swagger
+if (app.Environment.IsDevelopment())
+{
+    app.UseSwagger();
+    app.UseSwaggerUI();
+}
 
-
-//JWT:::
+// Auth
 app.UseAuthentication();
 app.UseAuthorization();
 
-//añadir rutas a los controllers
+// Controllers
 app.MapControllers();
 
-
-//pone en marcha nuestra app a partir de nuestra config y empieza a escuchar peticiones
-app.Run();      
-
+// Run
+app.Run();
