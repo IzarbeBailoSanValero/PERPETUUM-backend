@@ -16,7 +16,7 @@ public interface IMemoryRepository
     
     // Aceptar/rechazar memoria --> para el memorialGuardian
     Task<bool> UpdateStatusAsync(int id, MemoryStatus status);
-    
 
-    
+    /// <summary>Recupera memorias pendientes, opcionalmente filtradas por difuntos (para Guardian).</summary>
+    Task<List<(Memory memory, string deceasedName)>> GetPendingWithDeceasedNameAsync(List<int>? deceasedIds);
 }

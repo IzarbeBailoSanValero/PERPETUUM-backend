@@ -18,19 +18,19 @@ public class MemoryController : ControllerBase
     private readonly IMemoryService _memoryService;
     private readonly ILogger<MemoryController> _logger;
     private readonly IDeceasedService _deceasedService;
-    private readonly Cloudinary _cloudinary;
+    private readonly PERPETUUM.Services.CloudinaryWrapper _cloudinaryWrapper;
 
     public MemoryController(
         IMemoryService service,
         ILogger<MemoryController> logger,
         IMemorialGuardianService guardianService,
         IDeceasedService deceasedService,
-        Cloudinary cloudinary)
+        PERPETUUM.Services.CloudinaryWrapper cloudinaryWrapper)
     {
         _memoryService = service;
         _logger = logger;
         _deceasedService = deceasedService;
-        _cloudinary = cloudinary;
+        _cloudinaryWrapper = cloudinaryWrapper;
     }
 
 
@@ -51,9 +51,35 @@ public class MemoryController : ControllerBase
         }
     }
 
+    [HttpGet("pending")]
+    [Authorize(Roles = Roles.Admin + "," + Roles.Guardian)]
+    public async Task<ActionResult<List<MemoryResponseDTO>>> GetPendingMemories()
+    {
+        try
+        {
+            var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier);
+            if (userIdClaim == null || !int.TryParse(userIdClaim.Value, out int currentUserId))
+                return Unauthorized();
+
+            List<int>? deceasedIds = null;
+            if (User.IsInRole(Roles.Guardian))
+            {
+                var myDeceased = await _deceasedService.GetByGuardianIdAsync(currentUserId);
+                deceasedIds = myDeceased?.Select(d => d.Id).ToList() ?? new List<int>();
+            }
+
+            var list = await _memoryService.GetPendingMemoriesAsync(deceasedIds);
+            return Ok(list);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error al obtener memorias pendientes");
+            return StatusCode(500, "Error interno al recuperar los datos.");
+        }
+    }
 
     [HttpPost]
-    [Authorize(Roles = Roles.StandardUser + "," + Roles.Guardian)]//extraigo el id de usuario del token --> se asigna a l objeto antes de llamar al service
+    [Authorize(Roles = Roles.StandardUser)] // Solo User: Memory.UserId tiene FK a User(Id). Guardian/Staff no tienen User.Id.
     public async Task<ActionResult> AddMemory([FromBody] MemoryCreateDTO dto)
     {
         if (!ModelState.IsValid)
@@ -67,13 +93,11 @@ public class MemoryController : ControllerBase
             //cojo id de los claims --> el objeto User es una propiedad de ControllerBase que representa al usuario autenticado que hace la petición, por eso tengo acceso a él.
             var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier);
 
-            if (userIdClaim == null) return Unauthorized(); //problema al obtener claim --> problema con el token
-
-            //como el vlaor de claim llega como string xq JSON, hay que parsearlo a string
-            //no puedo hacer cast directo (int) porque no son tipos compatibles
-            int currentUserId = int.Parse(userIdClaim.Value);
-
-
+            if (userIdClaim == null || !int.TryParse(userIdClaim.Value, out int currentUserId))
+            {
+                _logger.LogWarning("Token sin identificador de usuario válido.");
+                return Unauthorized();
+            }
 
             var newId = await _memoryService.AddMemoryAsync(dto, currentUserId);
             return CreatedAtAction(nameof(GetByDeceased), new { deceasedId = dto.DeceasedId }, new { id = newId });
@@ -83,19 +107,23 @@ public class MemoryController : ControllerBase
         }
         catch (ArgumentException ex)
         {
-
             _logger.LogWarning("Error respecto a las reglas de negocio en memory");
             return Conflict(ex.Message);
         }
+        catch (MySqlConnector.MySqlException ex)
+        {
+            _logger.LogError(ex, "Error MySQL en AddMemory");
+            return BadRequest("No se pudo guardar el recuerdo. Comprueba que el difunto existe y que estás logueado como usuario (no como staff/guardian).");
+        }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error interno al procesar create deceased en controller");
+            _logger.LogError(ex, "Error interno al procesar create memory en controller");
             return StatusCode(500, "Error interno al procesar petición");
         }
     }
 
     [HttpPost("photo")]
-    [Authorize(Roles = Roles.StandardUser + "," + Roles.Guardian)]
+    [Authorize(Roles = Roles.StandardUser)] // Solo User: Memory.UserId tiene FK a User(Id).
     [RequestSizeLimit(15_000_000)] // 15MB
     public async Task<ActionResult> AddMemoryWithPhoto([FromForm] MemoryPhotoCreateDTO dto)
     {
@@ -108,8 +136,11 @@ public class MemoryController : ControllerBase
         try
         {
             var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier);
-            if (userIdClaim == null) return Unauthorized();
-            int currentUserId = int.Parse(userIdClaim.Value);
+            if (userIdClaim == null || !int.TryParse(userIdClaim.Value, out int currentUserId))
+            {
+                _logger.LogWarning("Token sin identificador de usuario válido (photo).");
+                return Unauthorized();
+            }
 
             if (dto.Photo == null || dto.Photo.Length == 0)
             {
@@ -126,6 +157,11 @@ public class MemoryController : ControllerBase
                 return BadRequest("El archivo debe ser una imagen.");
             }
 
+            if (!_cloudinaryWrapper.IsConfigured || _cloudinaryWrapper.Instance == null)
+            {
+                return StatusCode(503, "Subida de fotos no disponible. Configure la variable CLOUDINARY_URL (formato: cloudinary://api_key:api_secret@cloud_name) en el servidor.");
+            }
+
             await using var stream = dto.Photo.OpenReadStream();
             var uploadParams = new ImageUploadParams
             {
@@ -136,7 +172,7 @@ public class MemoryController : ControllerBase
                 Overwrite = false
             };
 
-            var uploadResult = await _cloudinary.UploadAsync(uploadParams);
+            var uploadResult = await _cloudinaryWrapper.Instance.UploadAsync(uploadParams);
             if (uploadResult.Error != null)
             {
                 _logger.LogError("Cloudinary error: {Message}", uploadResult.Error.Message);
@@ -165,6 +201,11 @@ public class MemoryController : ControllerBase
         {
             _logger.LogWarning("Reglas de negocio (memory photo): {Message}", ex.Message);
             return Conflict(ex.Message);
+        }
+        catch (MySqlConnector.MySqlException ex)
+        {
+            _logger.LogError(ex, "Error MySQL en AddMemoryWithPhoto");
+            return BadRequest("No se pudo guardar el recuerdo. Comprueba que el difunto existe y que estás logueado como usuario (no como staff/guardian).");
         }
         catch (Exception ex)
         {

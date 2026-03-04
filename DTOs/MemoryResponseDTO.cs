@@ -13,5 +13,7 @@ public class MemoryResponseDTO
     
     public int UserId { get; set; }
     public int DeceasedId { get; set; }
+    /// <summary>Opcional; se rellena en listados de moderación (pendientes).</summary>
+    public string? DeceasedName { get; set; }
 }
 

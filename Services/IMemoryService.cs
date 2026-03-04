@@ -12,6 +12,9 @@ public interface IMemoryService
     Task<int> AddMemoryAsync(MemoryCreateDTO dto , int currentUserId);
     
     Task<bool> UpdateStatusAsync(int id, MemoryStatus status); //aprobar y rechazar memorias
-    
+
+    /// <summary>Lista memorias pendientes; si deceasedIds es null, todas (Admin); si no, solo de esos difuntos (Guardian).</summary>
+    Task<List<MemoryResponseDTO>> GetPendingMemoriesAsync(List<int>? deceasedIds);
+
     Task<bool> DeleteMemoryAsync(int id); //soft delete
 }

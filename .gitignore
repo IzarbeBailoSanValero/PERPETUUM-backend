@@ -53,3 +53,6 @@ Desktop.ini
 
 # Archivos de OS
 .DS_Store
+
+# Variables de entorno (secretos: Cloudinary, etc.)
+.env

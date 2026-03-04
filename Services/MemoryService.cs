@@ -115,6 +115,16 @@ public class MemoryService : IMemoryService
         return await _repository.UpdateStatusAsync(id, status);
     }
 
+    public async Task<List<MemoryResponseDTO>> GetPendingMemoriesAsync(List<int>? deceasedIds)
+    {
+        var rows = await _repository.GetPendingWithDeceasedNameAsync(deceasedIds);
+        return rows.Select(r =>
+        {
+            var dto = MapToDTO(r.memory);
+            dto.DeceasedName = r.deceasedName;
+            return dto;
+        }).ToList();
+    }
 
     private MemoryResponseDTO MapToDTO(Memory m)
     {

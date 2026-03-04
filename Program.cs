@@ -7,8 +7,7 @@ using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
 
-// Cloudinary
-using CloudinaryDotNet;
+// Cloudinary (opcional: app arranca sin CLOUDINARY_URL; solo falla subida de fotos)
 using dotenv.net;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -71,11 +70,7 @@ DotEnv.Load(options: new DotEnvOptions(probeForEnv: true));
 builder.Services.AddSingleton(_ =>
 {
     var cloudinaryUrl = Environment.GetEnvironmentVariable("CLOUDINARY_URL");
-
-    var cloudinary = new Cloudinary(cloudinaryUrl);
-    cloudinary.Api.Secure = true;
-
-    return cloudinary;
+    return new PERPETUUM.Services.CloudinaryWrapper(cloudinaryUrl);
 });
 
 // =========================

@@ -1,6 +1,7 @@
 using MySqlConnector;
 using PERPETUUM.Models;
 using System.Data;
+using System.Linq;
 using Microsoft.Extensions.Logging;
 
 namespace PERPETUUM.Repositories;
@@ -180,6 +181,53 @@ public class MemoryRepository : IMemoryRepository
         catch (Exception ex)
         {
             _logger.LogError(ex, $"Error general en AddAsync: {ex.Message}");
+            throw;
+        }
+    }
+
+    public async Task<List<(Memory memory, string deceasedName)>> GetPendingWithDeceasedNameAsync(List<int>? deceasedIds)
+    {
+        var list = new List<(Memory, string)>();
+        try
+        {
+            using (var connection = new MySqlConnection(_connectionString))
+            {
+                await connection.OpenAsync();
+                string query = @"
+                    SELECT m.Id, m.CreatedDate, m.Type, m.Status, m.TextContent, m.MediaURL, m.AuthorRelation, m.DeceasedId, m.UserId, d.Name AS DeceasedName
+                    FROM Memory m
+                    INNER JOIN Deceased d ON m.DeceasedId = d.Id
+                    WHERE m.Status = @Status";
+                if (deceasedIds != null && deceasedIds.Count > 0)
+                {
+                    var inClause = string.Join(", ", deceasedIds.Select((_, i) => $"@id{i}"));
+                    query += $" AND m.DeceasedId IN ({inClause})";
+                }
+                query += " ORDER BY m.CreatedDate DESC";
+
+                using (var command = new MySqlCommand(query, connection))
+                {
+                    command.Parameters.AddWithValue("@Status", (int)MemoryStatus.Pending);
+                    if (deceasedIds != null)
+                        for (var i = 0; i < deceasedIds.Count; i++)
+                            command.Parameters.AddWithValue($"@id{i}", deceasedIds[i]);
+
+                    using (var reader = await command.ExecuteReaderAsync())
+                    {
+                        while (await reader.ReadAsync())
+                        {
+                            var memory = MapFromReader(reader);
+                            var name = reader.GetString("DeceasedName");
+                            list.Add((memory, name));
+                        }
+                    }
+                }
+            }
+            return list;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error en GetPendingWithDeceasedNameAsync");
             throw;
         }
     }
