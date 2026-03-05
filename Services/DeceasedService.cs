@@ -172,6 +172,7 @@ public async Task<bool> UpdateDeceasedAsync(DeceasedUpdateDTO dto)
         GuardianId = model.GuardianId,
         FuneralHomeId = model.FuneralHomeId,
         Dni = model.Dni,
+        StaffId = model.StaffId, 
         Name = model.Name,
         Epitaph = model.Epitaph,
         Biography = model.Biography,
