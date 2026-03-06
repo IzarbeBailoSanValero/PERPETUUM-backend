@@ -291,7 +291,7 @@ public class MemoryController : ControllerBase
 
 
     [HttpDelete("{id}")]
-    // LO PONGO COMO AUTHORIZED, ABIERTO A LOS LOGGEADOS, comprobación dentro xq son todos con condiciones
+    [Authorize] // Requiere sesión activa; los permisos finos (autor / guardian / admin) se comprueban dentro
     public async Task<ActionResult> Delete(int id)
     {
         try
