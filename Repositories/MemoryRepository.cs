@@ -10,13 +10,13 @@ public class MemoryRepository : IMemoryRepository
 {
     private readonly string _connectionString;
     private readonly ILogger<MemoryRepository> _logger;
-    
+
 
     public MemoryRepository(IConfiguration configuration, ILogger<MemoryRepository> logger)
     {
-       _connectionString = configuration.GetConnectionString("PerpetuumDB") ?? throw new ArgumentNullException("la cadena 'PerpetuumDB' no existe en appsettings");
+        _connectionString = configuration.GetConnectionString("PerpetuumDB") ?? throw new ArgumentNullException("la cadena 'PerpetuumDB' no existe en appsettings");
         _logger = logger;
-        
+
     }
 
     // 1. Obtener TODAS las memorias --> staff
@@ -124,9 +124,9 @@ public class MemoryRepository : IMemoryRepository
 
 
                 string query = @"
-                    SELECT Id, CreatedDate, Type, Status, TextContent, MediaURL, AuthorRelation, DeceasedId, UserId 
-                    FROM Memory 
-                    WHERE Id = @Id";
+    SELECT Id, CreatedDate, Type, Status, TextContent, MediaURL, AuthorRelation, DeceasedId, UserId, GuardianAuthorId
+    FROM Memory 
+    WHERE Id = @Id";
 
                 using (var command = new MySqlCommand(query, connection))
                 {
@@ -282,8 +282,9 @@ public class MemoryRepository : IMemoryRepository
 
 
     //sustituyo el borrado normal por soft delete --> en lugar de eliminar, cambio de estado a "rejected" por si alguien public aalgo ofensivo etc.  // Conceptualmente es un Delete, técnicamente es un Update
-    public async Task<bool> DeleteAsync(int id){
-         bool hasBeenUpdated = false;
+    public async Task<bool> DeleteAsync(int id)
+    {
+        bool hasBeenUpdated = false;
         try
         {
             using (var connection = new MySqlConnection(_connectionString))
@@ -296,12 +297,13 @@ public class MemoryRepository : IMemoryRepository
                 {
                     command.Parameters.AddWithValue("@Id", id);
                     command.Parameters.AddWithValue("@Status", (int)MemoryStatus.Rejected);
-                      int rowsAffected = await command.ExecuteNonQueryAsync();
+                    int rowsAffected = await command.ExecuteNonQueryAsync();
                     if (rowsAffected > 0) hasBeenUpdated = true;
                 }
             }
 
-        }catch (MySqlException ex)
+        }
+        catch (MySqlException ex)
         {
             _logger.LogError(ex, $"Error de MYSQL en UpdateAsync: {ex.Message}");
             throw;
@@ -311,9 +313,9 @@ public class MemoryRepository : IMemoryRepository
             _logger.LogError(ex, $"Error general en UpdateAsync: {ex.Message}");
             throw;
         }
-     return hasBeenUpdated;
-}
-        
+        return hasBeenUpdated;
+    }
+
 
 
     private Memory MapFromReader(MySqlDataReader reader)

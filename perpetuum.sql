@@ -124,7 +124,8 @@ INSERT INTO `User` (Name, BirthDate, Email, PhoneNumber, PasswordHash) VALUES
 ('Javier López', '1985-07-20', 'javier@email.com', '600333444', '$2a$11$jNRYr2iZD2xWNHtuXD6Gj.S4kU6OsQd/B/G49eo49pbuzOORQ1oh6'),
 ('Elena Prieto', '1978-11-05', 'elena@email.com', '600555666', '$2a$11$jNRYr2iZD2xWNHtuXD6Gj.S4kU6OsQd/B/G49eo49pbuzOORQ1oh6'),
 ('David Moreno', '1990-01-18', 'david@email.com', '611222333', '$2a$11$jNRYr2iZD2xWNHtuXD6Gj.S4kU6OsQd/B/G49eo49pbuzOORQ1oh6'),
-('Isabel Fernández', '1982-09-25', 'isabel@email.com', '622333444', '$2a$11$jNRYr2iZD2xWNHtuXD6Gj.S4kU6OsQd/B/G49eo49pbuzOORQ1oh6');
+('Isabel Fernández', '1982-09-25', 'isabel@email.com', '622333444', '$2a$11$jNRYr2iZD2xWNHtuXD6Gj.S4kU6OsQd/B/G49eo49pbuzOORQ1oh6'),
+('Jose Luis Torrente', '1982-09-25', 'torrente@email.com', '622333414', '$2a$11$jNRYr2iZD2xWNHtuXD6Gj.S4kU6OsQd/B/G49eo49pbuzOORQ1oh6');
 
 -- MemorialGuardian (Familiares)
 INSERT INTO MemorialGuardian (FuneralHomeId, StaffId, Name, DNI, Email, PhoneNumber, PasswordHash) VALUES 
@@ -194,3 +195,85 @@ INSERT INTO Memory (Type, Status, TextContent, MediaURL, AuthorRelation, Decease
 (1, 1, 'Vicente era un profesional brillante y un amigo leal. La ciudad pierde a uno de los mejores.', NULL, 'Colega', 10, 1),
 (2, 1, 'Fuimos juntos a ver el solar del nuevo centro de salud. Me explicó cada detalle de luz y ventilación. Lo que hacía siempre tenía un porqué.', NULL, 'Amigo', 10, 4),
 (3, 1, 'Vicente en la obra del último proyecto.', 'https://picsum.photos/seed/mem600/600/600', 'Conocido', 10, 5);
+
+-- añado en estado pendiente
+
+INSERT INTO Memory (Type, Status, TextContent, MediaURL, AuthorRelation, DeceasedId, UserId) VALUES 
+-- Difunto 1 - Manuel Pérez
+(1, 0, 'Conocí a Manuel en la feria del ganado de Toledo hace más de treinta años. Siempre fue un hombre de palabra. Mi más sentido pésame a su familia.', NULL, 'Conocido', 1, 5),
+(2, 0, 'Un año por las fiestas, Manuel organizó una carrera de sacos para los niños del pueblo. Se reía más que los críos. Nunca lo olvidaré.', NULL, 'Vecino', 1, 2),
+(3, 0, 'Manuel en la última fiesta de la vendimia.', 'https://picsum.photos/seed/pend101/600/600', 'Familiar', 1, 3),
+
+-- Difunto 2 - Sofía Martínez
+(1, 0, 'Doña Sofía me suspendió una vez y me lo explicó con tanta delicadeza que salí del despacho con ganas de esforzarme más. Eso es una maestra.', NULL, 'Exalumno', 2, 4),
+(2, 0, 'El día que se jubiló, sus alumnos llenamos el patio de flores. Ella dijo que no lo merecía. Claro que lo merecía.', NULL, 'Exalumna', 2, 1),
+
+-- Difunto 3 - Ricardo Torres
+(1, 0, 'Coincidí con Ricardo en un congreso de energía solar en Bilbao en 1993. Era el único que hablaba de esto como si fuera urgente. Tenía razón.', NULL, 'Colega', 3, 1),
+(3, 0, 'Ricardo en la inauguración de su primer parque solar.', 'https://picsum.photos/seed/pend103/600/600', 'Amigo', 3, 3),
+
+-- Difunto 4 - Remedios López
+(2, 0, 'Remedios me enseñó a hacer croquetas el verano que me quedé sin trabajo. Me dijo: "Mientras sepas cocinar, nunca pasarás hambre". Tenía razón, y yo también la recuerdo cada vez que las hago.', NULL, 'Vecina', 4, 3),
+(3, 0, 'Remedios con sus nietos en el huerto.', 'https://picsum.photos/seed/pend104/600/600', 'Vecino', 4, 5),
+
+-- Difunto 5 - Antonio Martínez Ruiz
+(1, 0, 'Antonio fue el primero en apoyarme cuando volví del servicio militar sin saber qué hacer con mi vida. Me dijo que el deber no termina cuando uno se quita el uniforme. Lo entendí después.', NULL, 'Amigo', 5, 2),
+(2, 0, 'Una madrugada de invierno se quedó tieso el coche a las afueras. Antonio paró, nos acercó al pueblo y no quiso ni un café. Así era él.', NULL, 'Vecino', 5, 1),
+
+-- Difunto 6 - Francisco Gil
+(1, 0, 'Llevé una silla rota al taller de Paco sin mucha esperanza. Me la devolvió como nueva y no quiso cobrarme. Le insistí y me dijo: "La próxima vez invitas tú al café".', NULL, 'Cliente', 6, 1),
+(3, 0, 'Francisco enseñando el oficio a los jóvenes del barrio.', 'https://picsum.photos/seed/pend106/600/600', 'Conocido', 6, 3),
+
+-- Difunto 7 - Concepción Costa
+(2, 0, 'El año de la sequía, Doña Concha repartió lo poco que tenía entre los jornaleros. No hizo falta que nadie se lo pidiera. Lo vio y lo hizo.', NULL, 'Vecino', 7, 2),
+(1, 0, 'Una mujer que supo lo que es el sacrificio sin quejarse nunca. El pueblo entero la quería. Descanse en paz, Doña Concha.', NULL, 'Vecina', 7, 5),
+
+-- Difunto 8 - José Ruiz Mendoza
+(2, 0, 'Mi padre estaba muy enfermo y el doctor Ruiz venía a casa antes de la consulta. Nunca nos lo cobró como visita extra. "Esto va de oficio", decía.', NULL, 'Paciente', 8, 3),
+(3, 0, 'El doctor Ruiz en la fiesta del barrio sanitario de Zaragoza.', 'https://picsum.photos/seed/pend108/600/600', 'Colega', 8, 4),
+
+-- Difunto 9 - Pilar Fernández
+(1, 0, 'Pilar arregló el traje de mi abuelo para que yo lo pudiera usar en mi boda. Lo hizo sin que nadie se lo pidiera, solo porque vio la foto encima de la máquina de coser. Qué corazón.', NULL, 'Vecino', 9, 3),
+(2, 0, 'Siempre ponía la radio mientras cosía. Decía que la costura sin música era como el pan sin sal. La recuerdo cantando bajito con la aguja en la mano.', NULL, 'Clienta', 9, 5),
+
+-- Difunto 10 - Vicente Gil
+(1, 0, 'Vicente diseñó el colegio donde estudian mis hijos. Cuando lo inauguraron vino sin avisar a ver cómo quedaba con los niños dentro. Eso dice mucho de una persona.', NULL, 'Vecino', 10, 2),
+(2, 0, 'En la última reunión del proyecto me dijo que lo que más le gustaba de su trabajo era que sus edificios envejecían bien. Como él.', NULL, 'Colega', 10, 3);
+
+
+
+-- El fary - difunto especial -
+-- =======================================================
+-- DIFUNTO: El Fary (José Luis Cantero)
+-- =======================================================
+
+-- Deceased
+INSERT INTO Deceased (Dni, FuneralHomeId, GuardianId, StaffId, Name, Epitaph, Biography, PhotoURL, BirthDate, DeathDate) VALUES 
+('66666666F', 1, 1, 2, 'José Luis Cantero "El Fary"', 
+'El rey del chotis que hizo bailar a toda España.', 
+'José Luis Cantero, conocido por todos como El Fary, nació en Madrid el 4 de febrero de 1942, en el barrio de Lavapiés. Criado entre la verbena y el castizo sabor del Madrid de posguerra, desde niño mostró una voz y una gracia naturales que lo llevarían a los escenarios. Debutó en los años sesenta como cantante de chotis y música popular madrileña, convirtiéndose pronto en el artista más querido de las fiestas de San Isidro. Su canción más célebre, "El emigrante", se convirtió en himno de toda una generación de españoles que tuvieron que dejar su tierra en busca de un futuro mejor. Con más de cuarenta discos publicados y decenas de películas y programas televisivos a sus espaldas, El Fary fue mucho más que un cantante: fue un símbolo de la alegría popular, del barrio, del orgullo castizo y del corazón abierto. Hombre cercano, humilde y siempre dispuesto a la broma, nunca olvidó sus raíces ni a la gente humilde que lo encumbró. Fue galardonado con múltiples premios y reconocimientos a lo largo de su carrera, aunque él siempre decía que su mayor premio era ver sonreír al público. Falleció en Madrid el 19 de mayo de 2007, dejando un vacío enorme en la música popular española. Su recuerdo vive en cada chotis, en cada verbena y en la sonrisa de quienes lo conocieron.',
+'https://res.cloudinary.com/dvgqvnho1/image/fetch/w_400,h_400,c_fill/https://www.biografiasyvidas.com/biografia/f/fotos/fary.jpg',
+'1942-02-04', '2007-05-19');
+
+-- =======================================================
+-- MEMORIES APROBADAS (Status = 1)
+-- =======================================================
+INSERT INTO Memory (Type, Status, TextContent, MediaURL, AuthorRelation, DeceasedId, UserId) VALUES 
+
+(3, 1, '¡Te has pirado al otro barrio y me dejas aquí sin tus canciones! Descansa en paz, arriba te esperan unas birras y un par de jamonas. Torrente.', 'https://res.cloudinary.com/dvgqvnho1/image/upload/v1772805867/torrente_memory_wfcfx4.jpg', 'Fiel seguidor', 11, 6),
+(1, 1, 'El Fary era el alma de las fiestas de San Isidro. Cada vez que subía al escenario, el chulapo más serio acababa bailando. Madrid le debe muchísimo.', NULL, 'Seguidor', 11, 1),
+(3, 1, 'El Fary en las fiestas de San Isidro', 'https://res.cloudinary.com/dvgqvnho1/image/fetch/w_400,h_400,c_fill/https://live.staticflickr.com/2312/2141874661_e19b181f9c_b.jpg', 'Fan', 11, 5),
+(1, 1, 'Mi madre lloraba cada vez que sonaba "El emigrante" en la radio. Decía que esa canción era la historia de su vida. Gracias, Fary, por poner música a tantas historias.', NULL, 'Fan', 11, 3),
+(2, 1, 'Le vi actuar en las fiestas del barrio de Carabanchel en el verano del 89. Al terminar se quedó firmando autógrafos a todos los que quisieron, sin prisa, sin guardaespaldas. Luego se sentó con los vecinos a tomar una caña como uno más. Eso no lo hace cualquiera.', NULL, 'Vecino', 11, 2),
+(2, 1, 'Trabajé de tramoyista en un teatro donde actuó en el 94. Llegó el primero al ensayo y se sabía los nombres de todos los técnicos al final del día. Una persona sin doblez, lo mismo en el escenario que entre bastidores.', NULL, 'Técnico', 11, 4);
+
+-- =======================================================
+-- MEMORIES PENDIENTES (Status = 0)
+-- =======================================================
+INSERT INTO Memory (Type, Status, TextContent, MediaURL, AuthorRelation, DeceasedId, UserId) VALUES 
+
+(1, 0, 'Nací en un pueblo de Extremadura y de pequeño mi padre ponía sus cintas en el coche cada vez que íbamos a Madrid. El Fary era la banda sonora del viaje. Siempre lo será.', NULL, 'Fan', 11, 2),
+(1, 0, 'Le escribí una carta cuando era joven diciéndole que su música me había ayudado en los peores momentos. Me contestó a mano. Guardo esa carta todavía.', NULL, 'Fan', 11, 3),
+(2, 0, 'Una tarde de invierno lo vi en el mercado de Vallecas comprando churros. Le pedí una foto con todo el apuro del mundo. Se rio, me puso el brazo encima y le dijo al churrero: "Ponle a este también, que hoy invito yo". Así era El Fary.', NULL, 'Vecino', 11, 4),
+(2, 0, 'En una entrevista que le hice para una radio local me dijo que lo único que le importaba era que la gente saliera contenta a casa. Llevaba cuarenta años cumpliéndolo.', NULL, 'Periodista', 11, 1),
+(3, 0, 'El Fary saludando al público desde el escenario en sus últimas actuaciones.', 'https://picsum.photos/seed/fary003/600/600', 'Seguidor', 11, 5);
