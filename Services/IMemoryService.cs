@@ -9,7 +9,7 @@ public interface IMemoryService
     Task<List<MemoryResponseDTO>> GetByDeceasedIdAsync(int deceasedId, bool onlyApproved);
     Task<MemoryResponseDTO?> GetByIdAsync(int id);
     
-    Task<int> AddMemoryAsync(MemoryCreateDTO dto , int currentUserId);
+    Task<int> AddMemoryAsync(MemoryCreateDTO dto, int? userId, int? guardianAuthorId);
     
     Task<bool> UpdateStatusAsync(int id, MemoryStatus status); //aprobar y rechazar memorias
 

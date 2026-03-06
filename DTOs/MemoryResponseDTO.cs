@@ -12,10 +12,14 @@ public class MemoryResponseDTO
     public string? AuthorRelation { get; set; }
     /// <summary>Nombre del usuario que publicó el recuerdo.</summary>
     public string? AuthorName { get; set; }
-    
-    public int UserId { get; set; }
+
+    /// <summary>FK a User. NULL cuando el autor es un Guardian.</summary>
+    public int? UserId { get; set; }
+
+    /// <summary>FK a MemorialGuardian. Relleno solo cuando el autor es Guardian.</summary>
+    public int? GuardianAuthorId { get; set; }
+
     public int DeceasedId { get; set; }
     /// <summary>Opcional; se rellena en listados de moderación (pendientes).</summary>
     public string? DeceasedName { get; set; }
 }
-

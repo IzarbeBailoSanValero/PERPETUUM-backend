@@ -84,15 +84,12 @@ public class DeceasedRepository : IDeceasedRepository
             {
                 await connection.OpenAsync();
 
+                // Solo traemos el difunto; las memorias las pide DeceasedService
+                // por separado a través de IMemoryRepository (solo aprobadas para el público)
                 string query = @"
                 SELECT Id, GuardianId, FuneralHomeId, StaffId, Dni, Name, Epitaph, Biography, PhotoURL, BirthDate, DeathDate 
                 FROM Deceased 
-                WHERE Id = @Id;
-
-                SELECT Id, CreatedDate, Type, Status, TextContent, MediaURL, AuthorRelation, UserId, DeceasedId 
-                FROM Memory 
-                WHERE DeceasedId = @Id;
-            ";
+                WHERE Id = @Id;";
 
                 using (var command = new MySqlCommand(query, connection))
                 {
@@ -120,27 +117,8 @@ public class DeceasedRepository : IDeceasedRepository
                             PhotoURL = reader.GetString("PhotoURL"),
                             BirthDate = reader.GetDateTime("BirthDate"),
                             DeathDate = reader.GetDateTime("DeathDate"),
-                            Memories = new List<Memory>()
+                            Memories = new List<Memory>() // el servicio rellena esto después
                         };
-
-                        //cargamos memorias
-                        await reader.NextResultAsync();
-
-                        while (await reader.ReadAsync())
-                        {
-                            deceased.Memories.Add(new Memory
-                            {
-                                Id = reader.GetInt32("Id"),
-                                CreatedDate = reader.GetDateTime("CreatedDate"),
-                                Type = (MemoryType)reader.GetInt32("Type"),
-                                Status = (MemoryStatus)reader.GetInt32("Status"),
-                                TextContent = reader.IsDBNull(reader.GetOrdinal("TextContent")) ? null : reader.GetString("TextContent"),
-                                MediaURL = reader.IsDBNull(reader.GetOrdinal("MediaURL")) ? null : reader.GetString("MediaURL"),
-                                AuthorRelation = reader.IsDBNull(reader.GetOrdinal("AuthorRelation")) ? null : reader.GetString("AuthorRelation"),
-                                UserId = reader.GetInt32("UserId"),
-                                DeceasedId = reader.GetInt32("DeceasedId")
-                            });
-                        }
                     }
                 }
             }

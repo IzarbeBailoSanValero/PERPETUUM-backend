@@ -78,9 +78,6 @@ public class MemoryController : ControllerBase
         }
     }
 
-    /// <summary>UserId para guardar en Memory cuando el autor es Guardian (Memory.UserId FK a User; Guardian no tiene User.Id).</summary>
-    private const int GuardianAuthorUserId = 1;
-
     [HttpPost]
     [Authorize(Roles = Roles.StandardUser + "," + Roles.Guardian)]
     public async Task<ActionResult> AddMemory([FromBody] MemoryCreateDTO dto)
@@ -98,14 +95,15 @@ public class MemoryController : ControllerBase
                 _logger.LogWarning("Token sin identificador de usuario válido.");
                 return Unauthorized();
             }
-            // Guardian no tiene User.Id; usamos un UserId de sistema para cumplir la FK.
-            int userIdForMemory = User.IsInRole(Roles.Guardian) ? GuardianAuthorUserId : claimUserId;
 
-            var newId = await _memoryService.AddMemoryAsync(dto, userIdForMemory);
+            // Guardian y StandardUser viven en tablas distintas:
+            // - StandardUser → UserId relleno, GuardianAuthorId NULL
+            // - Guardian     → GuardianAuthorId relleno, UserId NULL
+            int? userId          = User.IsInRole(Roles.Guardian) ? null : claimUserId;
+            int? guardianAuthorId = User.IsInRole(Roles.Guardian) ? claimUserId : null;
+
+            var newId = await _memoryService.AddMemoryAsync(dto, userId, guardianAuthorId);
             return CreatedAtAction(nameof(GetByDeceased), new { deceasedId = dto.DeceasedId }, new { id = newId });
-
-
-
         }
         catch (ArgumentException ex)
         {
@@ -143,7 +141,12 @@ public class MemoryController : ControllerBase
                 _logger.LogWarning("Token sin identificador de usuario válido (photo).");
                 return Unauthorized();
             }
-            int userIdForMemory = User.IsInRole(Roles.Guardian) ? GuardianAuthorUserId : claimUserId;
+
+            // Guardian y StandardUser viven en tablas distintas:
+            // - StandardUser → UserId relleno, GuardianAuthorId NULL
+            // - Guardian     → GuardianAuthorId relleno, UserId NULL
+            int? userId           = User.IsInRole(Roles.Guardian) ? null : claimUserId;
+            int? guardianAuthorId = User.IsInRole(Roles.Guardian) ? claimUserId : null;
 
             if (dto.Photo == null || dto.Photo.Length == 0)
             {
@@ -198,7 +201,7 @@ public class MemoryController : ControllerBase
                 AuthorRelation = dto.AuthorRelation
             };
 
-            var newId = await _memoryService.AddMemoryAsync(memoryDto, userIdForMemory);
+            var newId = await _memoryService.AddMemoryAsync(memoryDto, userId, guardianAuthorId);
             return CreatedAtAction(nameof(GetByDeceased), new { deceasedId = dto.DeceasedId }, new { id = newId, mediaUrl = memoryDto.MediaURL });
         }
         catch (ArgumentException ex)
@@ -315,29 +318,34 @@ public class MemoryController : ControllerBase
 
             //admin
             if (User.IsInRole(Roles.Admin)) canDelete = true;
-            //author
-            else if (memoryDTO.UserId == currentlyUserId) canDelete = true;
-            //guardian
+            // StandardUser autor del recuerdo (UserId coincide con su Id en la tabla User)
+            else if (memoryDTO.UserId.HasValue && memoryDTO.UserId == currentlyUserId) canDelete = true;
+            //guardian: comprueba tanto la columna GuardianAuthorId (recuerdos que él publicó)
+            //          como sus difuntos a cargo (puede moderar cualquier recuerdo de su memorial)
             else if (User.IsInRole(Roles.Guardian))
             {
-
-                //traigo sus difuntos a cargo 
-                var myDeceasedList = await _deceasedService.GetByGuardianIdAsync(currentlyUserId);
-
-                if (myDeceasedList != null)
+                // ¿Es el propio Guardian quien lo publicó?
+                if (memoryDTO.GuardianAuthorId.HasValue && memoryDTO.GuardianAuthorId == currentlyUserId)
                 {
+                    canDelete = true;
+                }
+                else
+                {
+                    //traigo sus difuntos a cargo 
+                    var myDeceasedList = await _deceasedService.GetByGuardianIdAsync(currentlyUserId);
 
-                    foreach (var deceased in myDeceasedList)
+                    if (myDeceasedList != null)
                     {
-                        if (deceased.Id == memoryDTO.DeceasedId)
+                        foreach (var deceased in myDeceasedList)
                         {
-                            canDelete = true;
-                            break;
+                            if (deceased.Id == memoryDTO.DeceasedId)
+                            {
+                                canDelete = true;
+                                break;
+                            }
                         }
                     }
                 }
-
-
             }
 
             if (!canDelete)

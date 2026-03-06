@@ -60,7 +60,7 @@ public class MemoryService : IMemoryService
 
 
     //no infiero el tipo en el backend porque le usuario debe poder elegir anécdota vs condolencia
-    public async Task<int> AddMemoryAsync(MemoryCreateDTO dto, int currentUserId)
+    public async Task<int> AddMemoryAsync(MemoryCreateDTO dto, int? userId, int? guardianAuthorId)
     {
         //valido que si es de tipo condolencia o anécdota exista texto
         if ((dto.Type == 1 || dto.Type == 2) && string.IsNullOrWhiteSpace(dto.TextContent))
@@ -78,7 +78,9 @@ public class MemoryService : IMemoryService
         var memory = new Memory
         {
             DeceasedId = dto.DeceasedId,
-            UserId = currentUserId,
+            // Solo uno de los dos tendrá valor según el tipo de autor
+            UserId = userId,
+            GuardianAuthorId = guardianAuthorId,
             Type = (MemoryType)dto.Type, // en el model es MemoryType, en el dtocreate es un int
             Status = MemoryStatus.Pending, //por defecto pending
             TextContent = dto.TextContent,
@@ -90,8 +92,6 @@ public class MemoryService : IMemoryService
         int newMemoryId = await _repository.AddAsync(memory);
         _logger.LogInformation($"Memoria añadida con éxito. El id  es {newMemoryId}");
         return newMemoryId;
-
-
     }
 
     public async Task<bool> DeleteMemoryAsync(int id)
@@ -139,10 +139,11 @@ public class MemoryService : IMemoryService
             AuthorRelation = m.AuthorRelation,
             AuthorName = m.AuthorName,
             DeceasedId = m.DeceasedId,
-            UserId = m.UserId
+            // Solo uno de los dos tendrá valor según el tipo de autor
+            UserId = m.UserId,
+            GuardianAuthorId = m.GuardianAuthorId
         };
     }
 
 
 }
-

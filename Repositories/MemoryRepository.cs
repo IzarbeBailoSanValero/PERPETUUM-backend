@@ -29,11 +29,14 @@ public class MemoryRepository : IMemoryRepository
             {
                 await connection.OpenAsync();
 
-
+                // LEFT JOIN porque UserId puede ser NULL (autor Guardian)
+                // COALESCE devuelve el nombre del Guardian si no hay User
                 string query = @"
-                    SELECT m.Id, m.CreatedDate, m.Type, m.Status, m.TextContent, m.MediaURL, m.AuthorRelation, m.DeceasedId, m.UserId, u.Name AS AuthorName
+                    SELECT m.Id, m.CreatedDate, m.Type, m.Status, m.TextContent, m.MediaURL, m.AuthorRelation, m.DeceasedId, m.UserId, m.GuardianAuthorId,
+                           COALESCE(u.Name, mg.Name) AS AuthorName
                     FROM Memory m
-                    INNER JOIN `User` u ON m.UserId = u.Id
+                    LEFT JOIN `User` u ON m.UserId = u.Id
+                    LEFT JOIN MemorialGuardian mg ON m.GuardianAuthorId = mg.Id
                     WHERE m.DeceasedId = @Id ORDER BY m.CreatedDate DESC";
 
                 using (var command = new MySqlCommand(query, connection))
@@ -75,10 +78,14 @@ public class MemoryRepository : IMemoryRepository
             {
                 await connection.OpenAsync();
 
+                // LEFT JOIN porque UserId puede ser NULL (autor Guardian)
+                // COALESCE devuelve el nombre del Guardian si no hay User
                 string query = @"
-                    SELECT m.Id, m.CreatedDate, m.Type, m.Status, m.TextContent, m.MediaURL, m.AuthorRelation, m.DeceasedId, m.UserId, u.Name AS AuthorName
+                    SELECT m.Id, m.CreatedDate, m.Type, m.Status, m.TextContent, m.MediaURL, m.AuthorRelation, m.DeceasedId, m.UserId, m.GuardianAuthorId,
+                           COALESCE(u.Name, mg.Name) AS AuthorName
                     FROM Memory m
-                    INNER JOIN `User` u ON m.UserId = u.Id
+                    LEFT JOIN `User` u ON m.UserId = u.Id
+                    LEFT JOIN MemorialGuardian mg ON m.GuardianAuthorId = mg.Id
                     WHERE m.DeceasedId = @Id AND m.Status = @Status
                     ORDER BY m.CreatedDate DESC";
 
@@ -152,9 +159,9 @@ public class MemoryRepository : IMemoryRepository
                 await connection.OpenAsync();
 
                 string query = @"INSERT INTO Memory 
-                                (Type, Status, TextContent, MediaURL, AuthorRelation, DeceasedId, UserId, CreatedDate) 
+                                (Type, Status, TextContent, MediaURL, AuthorRelation, DeceasedId, UserId, GuardianAuthorId, CreatedDate) 
                                 VALUES 
-                                (@Type, @Status, @Text, @MediaURL, @AuthorRelation, @DeceasedId, @UserId, NOW());
+                                (@Type, @Status, @Text, @MediaURL, @AuthorRelation, @DeceasedId, @UserId, @GuardianAuthorId, NOW());
                                 SELECT LAST_INSERT_ID();";
 
                 using (var command = new MySqlCommand(query, connection))
@@ -171,7 +178,10 @@ public class MemoryRepository : IMemoryRepository
                     command.Parameters.AddWithValue("@AuthorRelation", (object?)memory.AuthorRelation ?? DBNull.Value);
 
                     command.Parameters.AddWithValue("@DeceasedId", memory.DeceasedId);
-                    command.Parameters.AddWithValue("@UserId", memory.UserId);
+
+                    // Solo una de las dos columnas tendrá valor; la otra será NULL
+                    command.Parameters.AddWithValue("@UserId", (object?)memory.UserId ?? DBNull.Value);
+                    command.Parameters.AddWithValue("@GuardianAuthorId", (object?)memory.GuardianAuthorId ?? DBNull.Value);
 
                     return Convert.ToInt32(await command.ExecuteScalarAsync());
                 }
@@ -202,7 +212,7 @@ public class MemoryRepository : IMemoryRepository
             {
                 await connection.OpenAsync();
                 string query = @"
-                    SELECT m.Id, m.CreatedDate, m.Type, m.Status, m.TextContent, m.MediaURL, m.AuthorRelation, m.DeceasedId, m.UserId, d.Name AS DeceasedName
+                    SELECT m.Id, m.CreatedDate, m.Type, m.Status, m.TextContent, m.MediaURL, m.AuthorRelation, m.DeceasedId, m.UserId, m.GuardianAuthorId, d.Name AS DeceasedName
                     FROM Memory m
                     INNER JOIN Deceased d ON m.DeceasedId = d.Id
                     WHERE m.Status = @Status";
@@ -318,7 +328,9 @@ public class MemoryRepository : IMemoryRepository
             MediaURL = reader.IsDBNull("MediaURL") ? null : reader.GetString("MediaURL"),
             AuthorRelation = reader.IsDBNull("AuthorRelation") ? null : reader.GetString("AuthorRelation"),
             DeceasedId = reader.GetInt32("DeceasedId"),
-            UserId = reader.GetInt32("UserId")
+            // UserId y GuardianAuthorId son mutuamente excluyentes; uno de los dos siempre será NULL
+            UserId = reader.IsDBNull("UserId") ? null : reader.GetInt32("UserId"),
+            GuardianAuthorId = reader.IsDBNull("GuardianAuthorId") ? null : reader.GetInt32("GuardianAuthorId")
         };
     }
 

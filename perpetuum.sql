@@ -81,14 +81,16 @@ CREATE TABLE Memory (
     Id INT PRIMARY KEY AUTO_INCREMENT,
     CreatedDate DATETIME DEFAULT CURRENT_TIMESTAMP, 
     Type INT NOT NULL, -- 1=Texto, 2=Imagen, etc.
-    Status INT NOT NULL DEFAULT 0, -- 0=Pendiente, 1=Aprobado, 2= denegado
+    Status INT NOT NULL DEFAULT 0, -- 0=Pendiente, 1=Aprobado, 2=Denegado
     TextContent TEXT, 
     MediaURL VARCHAR(500), 
     AuthorRelation VARCHAR(255),
     DeceasedId INT NOT NULL,
-    UserId INT NOT NULL, 
+    UserId INT NULL,              -- NULL cuando el autor es un Guardian (tabla distinta)
+    GuardianAuthorId INT NULL,    -- Relleno solo si el autor es Guardian
     FOREIGN KEY (DeceasedId) REFERENCES Deceased(Id) ON DELETE CASCADE,
-    FOREIGN KEY (UserId) REFERENCES `User`(Id) ON DELETE CASCADE
+    FOREIGN KEY (UserId) REFERENCES `User`(Id) ON DELETE CASCADE,
+    FOREIGN KEY (GuardianAuthorId) REFERENCES MemorialGuardian(Id) ON DELETE CASCADE
 );
 
 -- =======================================================
