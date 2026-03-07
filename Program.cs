@@ -10,7 +10,7 @@ using Microsoft.OpenApi.Models;
 // Cloudinary (opcional: app arranca sin CLOUDINARY_URL; solo falla subida de fotos)
 using dotenv.net;
 
-//seed
+// Seed
 using MySqlConnector;
 using Dapper;
 
@@ -164,7 +164,9 @@ app.UseAuthorization();
 // Controllers
 app.MapControllers();
 
-//seed
+// =========================
+// SEED
+// =========================
 using (var scope = app.Services.CreateScope())
 {
     var connString = builder.Configuration.GetConnectionString("PerpetuumDB");
@@ -178,14 +180,33 @@ using (var scope = app.Services.CreateScope())
     if (tablesExist == 0)
     {
         var sql = await File.ReadAllTextAsync("perpetuum.sql");
-        var script = new MySqlScript(conn, sql);
-        await script.ExecuteAsync();
+
+        // Eliminar comentarios -- antes de parsear por ;
+        var lines = sql.Split('\n')
+            .Select(l =>
+            {
+                var idx = l.IndexOf("--");
+                return idx >= 0 ? l.Substring(0, idx) : l;
+            });
+        var cleanSql = string.Join('\n', lines);
+
+        var statements = cleanSql.Split(';', StringSplitOptions.RemoveEmptyEntries);
+        foreach (var statement in statements)
+        {
+            var trimmed = statement.Trim();
+            if (!string.IsNullOrWhiteSpace(trimmed))
+            {
+                try
+                {
+                    await conn.ExecuteAsync(trimmed);
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"[SEED] Error en sentencia: {ex.Message}");
+                }
+            }
+        }
     }
 }
 
 app.Run();
-
-
-
-
-
