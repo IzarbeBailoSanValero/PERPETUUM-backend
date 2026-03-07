@@ -173,11 +173,19 @@ using (var scope = app.Services.CreateScope())
     using var conn = new MySqlConnection(connString);
     await conn.OpenAsync();
 
+    // Crear tablas si no existen (por si la DB está vacía)
     var tablesExist = await conn.ExecuteScalarAsync<int>(
-        "SELECT COUNT(*) FROM information_schema.tables WHERE table_schema = 'PerpetuumDB' AND table_name = 'FuneralHome'"
+        "SELECT COUNT(*) FROM information_schema.tables WHERE table_schema = 'PerpetuumDB' AND table_name = 'Deceased'"
     );
 
-    if (tablesExist == 0)
+    // Comprobar si hay datos en Deceased
+    int hasData = 0;
+    if (tablesExist > 0)
+    {
+        hasData = await conn.ExecuteScalarAsync<int>("SELECT COUNT(*) FROM Deceased");
+    }
+
+    if (hasData == 0)
     {
         var sql = await File.ReadAllTextAsync("perpetuum.sql");
 
