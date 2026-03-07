@@ -10,11 +10,11 @@ using Microsoft.OpenApi.Models;
 // Cloudinary (opcional: app arranca sin CLOUDINARY_URL; solo falla subida de fotos)
 using dotenv.net;
 
-var builder = WebApplication.CreateBuilder(args);
-
 //seed
 using MySqlConnector;
 using Dapper;
+
+var builder = WebApplication.CreateBuilder(args);
 
 // =========================
 // CORS
