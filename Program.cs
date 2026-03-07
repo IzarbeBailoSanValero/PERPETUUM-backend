@@ -164,31 +164,22 @@ app.UseAuthorization();
 // Controllers
 app.MapControllers();
 
-// Seed automático al arrancar
-using (var scope = app.Services.CreateScope())
+//seed
+var connString = builder.Configuration.GetConnectionString("PerpetuumDB")
+               + ";AllowUserVariables=true";
+using var conn = new MySqlConnection(connString);
+await conn.OpenAsync();
+
+var tablesExist = await conn.ExecuteScalarAsync<int>(
+    "SELECT COUNT(*) FROM information_schema.tables WHERE table_schema = 'PerpetuumDB' AND table_name = 'FuneralHome'"
+);
+
+if (tablesExist == 0)
 {
-    var connString = builder.Configuration.GetConnectionString("PerpetuumDB");
-    using var conn = new MySqlConnection(connString);
-    await conn.OpenAsync();
-
-    var tablesExist = await conn.ExecuteScalarAsync<int>(
-        "SELECT COUNT(*) FROM information_schema.tables WHERE table_schema = 'PerpetuumDB' AND table_name = 'FuneralHome'"
-    );
-
-    if (tablesExist == 0)
-    {
-        var sql = await File.ReadAllTextAsync("perpetuum.sql");
-        // Dividir el SQL en sentencias individuales y ejecutarlas una a una
-        var statements = sql.Split(';', StringSplitOptions.RemoveEmptyEntries);
-        foreach (var statement in statements)
-        {
-            var trimmed = statement.Trim();
-            if (!string.IsNullOrWhiteSpace(trimmed))
-            {
-                await conn.ExecuteAsync(trimmed);
-            }
-        }
-    }
+    var sql = await File.ReadAllTextAsync("perpetuum.sql");
+    var command = conn.CreateCommand();
+    command.CommandText = sql;
+    await command.ExecuteNonQueryAsync();
 }
 
 app.Run();
