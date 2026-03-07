@@ -1,11 +1,12 @@
 {
   "version": 2,
-  "dgSpecHash": "7qyu6XjiLyM=",
+  "dgSpecHash": "oXJYvCgM4jU=",
   "success": true,
   "projectFilePath": "/Users/izarbe/Desktop/ENTREGABLE OLIVER/PERPETUUM-backend/PERPETUUM.csproj",
   "expectedPackageFiles": [
     "/Users/izarbe/.nuget/packages/bcrypt.net-next/4.0.3/bcrypt.net-next.4.0.3.nupkg.sha512",
     "/Users/izarbe/.nuget/packages/cloudinarydotnet/1.28.0/cloudinarydotnet.1.28.0.nupkg.sha512",
+    "/Users/izarbe/.nuget/packages/dapper/2.1.72/dapper.2.1.72.nupkg.sha512",
     "/Users/izarbe/.nuget/packages/dotenv.net/4.0.1/dotenv.net.4.0.1.nupkg.sha512",
     "/Users/izarbe/.nuget/packages/microsoft.aspnetcore.authentication.jwtbearer/8.0.20/microsoft.aspnetcore.authentication.jwtbearer.8.0.20.nupkg.sha512",
     "/Users/izarbe/.nuget/packages/microsoft.extensions.apidescription.server/6.0.5/microsoft.extensions.apidescription.server.6.0.5.nupkg.sha512",

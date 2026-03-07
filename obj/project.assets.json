@@ -33,6 +33,19 @@
           }
         }
       },
+      "Dapper/2.1.72": {
+        "type": "package",
+        "compile": {
+          "lib/net8.0/Dapper.dll": {
+            "related": ".xml"
+          }
+        },
+        "runtime": {
+          "lib/net8.0/Dapper.dll": {
+            "related": ".xml"
+          }
+        }
+      },
       "dotenv.net/4.0.1": {
         "type": "package",
         "compile": {
@@ -1629,6 +1642,27 @@
         "lib/netstandard1.3/CloudinaryDotNet.xml",
         "lib/netstandard2.0/CloudinaryDotNet.dll",
         "lib/netstandard2.0/CloudinaryDotNet.xml"
+      ]
+    },
+    "Dapper/2.1.72": {
+      "sha512": "ns4mGqQd9a/MhP8m6w556vVlZIa0/MfUu03zrxjZC/jlr1uVCsUac8bkdB+Fs98Llbd56rRSo1eZH5VVmeGZyw==",
+      "type": "package",
+      "path": "dapper/2.1.72",
+      "files": [
+        ".nupkg.metadata",
+        ".signature.p7s",
+        "Dapper.png",
+        "dapper.2.1.72.nupkg.sha512",
+        "dapper.nuspec",
+        "lib/net10.0/Dapper.dll",
+        "lib/net10.0/Dapper.xml",
+        "lib/net461/Dapper.dll",
+        "lib/net461/Dapper.xml",
+        "lib/net8.0/Dapper.dll",
+        "lib/net8.0/Dapper.xml",
+        "lib/netstandard2.0/Dapper.dll",
+        "lib/netstandard2.0/Dapper.xml",
+        "readme.md"
       ]
     },
     "dotenv.net/4.0.1": {
@@ -5196,6 +5230,7 @@
     "net8.0": [
       "BCrypt.Net-Next >= 4.0.3",
       "CloudinaryDotNet >= 1.28.0",
+      "Dapper >= 2.1.72",
       "Microsoft.AspNetCore.Authentication.JwtBearer >= 8.0.20",
       "MySqlConnector >= 2.5.0",
       "Serilog.AspNetCore >= 10.0.0",
@@ -5253,6 +5288,10 @@
           "CloudinaryDotNet": {
             "target": "Package",
             "version": "[1.28.0, )"
+          },
+          "Dapper": {
+            "target": "Package",
+            "version": "[2.1.72, )"
           },
           "Microsoft.AspNetCore.Authentication.JwtBearer": {
             "target": "Package",
