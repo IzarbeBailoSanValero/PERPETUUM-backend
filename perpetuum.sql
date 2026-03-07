@@ -1,10 +1,4 @@
--- =======================================================
--- 0. CONFIGURACIÓN INICIAL (REINICIO LIMPIO)
--- =======================================================
-DROP DATABASE IF EXISTS PerpetuumDB;
-CREATE DATABASE PerpetuumDB CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
-USE PerpetuumDB;
-
+-- quito primeras filas porque en mysql no tengo permiso
 -- =======================================================
 -- 1. CREACIÓN DE TABLAS
 -- =======================================================
