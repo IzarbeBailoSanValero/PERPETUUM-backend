@@ -12,6 +12,10 @@ using dotenv.net;
 
 var builder = WebApplication.CreateBuilder(args);
 
+//seed
+using MySqlConnector;
+using Dapper;
+
 // =========================
 // CORS
 // =========================
