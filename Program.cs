@@ -160,5 +160,45 @@ app.UseAuthorization();
 // Controllers
 app.MapControllers();
 
-// Run
+
+
+// Seed automático al arrancar
+using (var scope = app.Services.CreateScope())
+{
+    var connString = builder.Configuration.GetConnectionString("PerpetuumDB")
+                   + ";Allow User Variables=true;Allow Multiple Statements=true";
+    using var conn = new MySqlConnection(connString);
+    await conn.OpenAsync();
+
+    var tablesExist = await conn.ExecuteScalarAsync<int>(
+        "SELECT COUNT(*) FROM information_schema.tables WHERE table_schema = 'PerpetuumDB' AND table_name = 'FuneralHome'"
+    );
+
+    if (tablesExist == 0)
+    {
+        var sql = await File.ReadAllTextAsync("perpetuum.sql");
+        await conn.ExecuteAsync(sql);
+    }
+}
+
+
+// Seed automático al arrancar
+using (var scope = app.Services.CreateScope())
+{
+    var connString = builder.Configuration.GetConnectionString("PerpetuumDB")
+                   + ";Allow User Variables=true;Allow Multiple Statements=true";
+    using var conn = new MySqlConnection(connString);
+    await conn.OpenAsync();
+
+    var tablesExist = await conn.ExecuteScalarAsync<int>(
+        "SELECT COUNT(*) FROM information_schema.tables WHERE table_schema = 'PerpetuumDB' AND table_name = 'FuneralHome'"
+    );
+
+    if (tablesExist == 0)
+    {
+        var sql = await File.ReadAllTextAsync("perpetuum.sql");
+        await conn.ExecuteAsync(sql);
+    }
+}
+
 app.Run();
