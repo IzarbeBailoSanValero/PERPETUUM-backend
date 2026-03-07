@@ -167,8 +167,7 @@ app.MapControllers();
 // Seed automático al arrancar
 using (var scope = app.Services.CreateScope())
 {
-    var connString = builder.Configuration.GetConnectionString("PerpetuumDB")
-                   + ";Allow User Variables=true;Allow Multiple Statements=true";
+    var connString = builder.Configuration.GetConnectionString("PerpetuumDB");
     using var conn = new MySqlConnection(connString);
     await conn.OpenAsync();
 
@@ -179,7 +178,16 @@ using (var scope = app.Services.CreateScope())
     if (tablesExist == 0)
     {
         var sql = await File.ReadAllTextAsync("perpetuum.sql");
-        await conn.ExecuteAsync(sql);
+        // Dividir el SQL en sentencias individuales y ejecutarlas una a una
+        var statements = sql.Split(';', StringSplitOptions.RemoveEmptyEntries);
+        foreach (var statement in statements)
+        {
+            var trimmed = statement.Trim();
+            if (!string.IsNullOrWhiteSpace(trimmed))
+            {
+                await conn.ExecuteAsync(trimmed);
+            }
+        }
     }
 }
 
