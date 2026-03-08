@@ -10,6 +10,7 @@ using Microsoft.OpenApi.Models;
 // Cloudinary (opcional: app arranca sin CLOUDINARY_URL; solo falla subida de fotos)
 using dotenv.net;
 
+
 // Seed
 using MySqlConnector;
 using Dapper;
@@ -163,6 +164,7 @@ app.UseAuthorization();
 
 // Controllers
 app.MapControllers();
+
 
 // =========================
 // SEED
